@@ -1,0 +1,22 @@
+### **Project Name:** **CrossBridge**  
+### **Description:**  
+CrossBridge is a **Solana-to-Ethereum asset bridge** that allows users to seamlessly move **SOL** from the Solana blockchain to **Ethereum**, where it is represented as **wrapped SOL (wSOL)**. Users can then trade **wSOL for ETH** on Ethereum-based decentralized exchanges like **Uniswap** or **Curve**. The bridge also allows users to **redeem wSOL** back into **SOL on Solana** at any time.  
+
+---
+
+### **🔧 Key Features:**  
+✅ **Solana to Ethereum bridging** – Lock SOL on Solana and mint wSOL on Ethereum.  
+✅ **Ethereum to Solana bridging** – Burn wSOL on Ethereum and unlock SOL on Solana.  
+✅ **Swap wSOL to ETH** – Users can trade wSOL for ETH via Uniswap.  
+✅ **Rust-based relayer bot** – Automates cross-chain transactions.  
+✅ **Smart contract security** – Prevents exploits and ensures secure transfers.  
+
+---
+
+### **📌 Tech Stack:**  
+🛠 **Solana Smart Contract:** Rust (Anchor Framework)  
+🛠 **Ethereum Smart Contract:** Solidity  
+🛠 **Cross-Chain Relayer:** Rust  
+🛠 **Frontend (Optional):** Next.js (TypeScript)  
+🛠 **Wallets:** Phantom (Solana) & MetaMask (Ethereum)  
+
