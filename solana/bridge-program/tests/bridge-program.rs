@@ -1,53 +1,83 @@
 use anchor_lang::{prelude::*};
 use anchor_lang::solana_program::system_program;
-use solana_sdk::{signature::Keypair, transaction::Transaction};
-use anchor_client::solana_sdk::pubkey::Pubkey;
+use anchor_client::{
+    Client, Cluster,
+    solana_sdk::{
+        signature::{Keypair, Signer},
+        pubkey::Pubkey,
+        native_token::LAMPORTS_PER_SOL,
+    },
+};
+use std::rc::Rc;
+use std::str::FromStr;
 
 #[tokio::test]
-async fn test_initialize_and_lock_sol() {
-    let program_id = Pubkey::from_str("28AQpwDXyQPTkcuJweUQFfAMqTkDZfNME71Anic7o5rM").unwrap();
-    let client = anchor_client::Client::new_with_options(
-        solana_client::rpc_client::RpcClient::new("https://api.devnet.solana.com".to_string()),
-        Keypair::new(),
-        anchor_client::ClientOptions::default(),
-    );
-
-    let program = client.program(program_id);
-
-    // Step 1: Initialize the bridge account
+async fn test_initialize_lock_unlock() -> anyhow::Result<()> {
+    // Setup
+    let program_id = Pubkey::from_str("28AQpwDXyQPTkcuJweUQFfAMqTkDZfNME71Anic7o5rM")?;
     let user = Keypair::new();
     let bridge_account = Keypair::new();
 
-    let ix_initialize = program
+    // Connect to devnet
+    let client = Client::new_with_options(
+        Cluster::Devnet,
+        Rc::new(user.clone()),
+        CommitmentConfig::processed(),
+    );
+    let program = client.program(program_id);
+
+    // Airdrop 2 SOL to user
+    println!("Airdropping 2 SOL to user: {}", user.pubkey());
+    let sig = program
+        .rpc()
+        .request_airdrop(&user.pubkey(), 2 * LAMPORTS_PER_SOL)?;
+    program.rpc().confirm_transaction(&sig)?;
+
+    // Initialize
+    println!("Initializing bridge account...");
+    program
         .request()
         .accounts(bridge_program::accounts::Initialize {
             bridge_account: bridge_account.pubkey(),
             user: user.pubkey(),
-            system_program: system_program::id(),
+            system_program: system_program::ID,
         })
-        .signers(&[&user, &bridge_account])
-        .instruction();
-    
-    let mut tx = Transaction::new_with_payer(&[ix_initialize], Some(&user.pubkey()));
-    client.rpc().send_and_confirm_transaction(&tx).unwrap();
+        .args(bridge_program::instruction::Initialize {})
+        .signer(&bridge_account)
+        .send()
+        .await?;
 
-    // Verify the bridge account is initialized (optional: check state on-chain)
-
-    // Step 2: Lock some SOL
-    let amount = 1000000000; // 1 SOL in lamports
-    let ix_lock_sol = program
+    // Lock SOL
+    let amount = 1 * LAMPORTS_PER_SOL;
+    println!("Locking 1 SOL...");
+    program
         .request()
         .accounts(bridge_program::accounts::LockSol {
             bridge_account: bridge_account.pubkey(),
             user: user.pubkey(),
-            system_program: system_program::id(),
+            system_program: system_program::ID,
         })
         .args(bridge_program::instruction::LockSol { amount })
-        .signers(&[&user])
-        .instruction();
-    
-    let mut tx = Transaction::new_with_payer(&[ix_lock_sol], Some(&user.pubkey()));
-    client.rpc().send_and_confirm_transaction(&tx).unwrap();
+        .send()
+        .await?;
 
-    // Optional: Assert that the total_locked in the bridge account has been updated
+    // Unlock SOL
+    println!("Unlocking 1 SOL...");
+    program
+        .request()
+        .accounts(bridge_program::accounts::UnLockSol {
+            bridge_account: bridge_account.pubkey(),
+            user: user.pubkey(),
+            system_program: system_program::ID,
+        })
+        .args(bridge_program::instruction::UnLockSol { amount })
+        .send()
+        .await?;
+
+    // (Optional) Fetch and print bridge account state
+    let bridge_state: bridge_program::BridgeAccount = program.account(bridge_account.pubkey()).await?;
+
+    println!("Bridge total locked: {} SOL", bridge_state.total_locked as f64 / LAMPORTS_PER_SOL as f64);
+
+    Ok(())
 }
