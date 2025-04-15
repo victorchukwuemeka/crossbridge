@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract WSol is ERC20 {
-    constructor() ERC20("Wrapped SOL", "wSOL") {}
+contract WSol is ERC20, Ownable {
+    constructor(address initialOwner) ERC20("Wrapped SOL", "wSOL") Ownable(initialOwner) {}
 
     function deposit() public payable {
         _mint(msg.sender, msg.value);
@@ -14,6 +15,14 @@ contract WSol is ERC20 {
         require(balanceOf(msg.sender) >= amount, "Insufficient balance");
         _burn(msg.sender, amount);
         payable(msg.sender).transfer(amount);
+    }
+
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
+    }
+
+    function burn(address from, uint256 amount) public onlyOwner {
+        _burn(from, amount);
     }
 
     receive() external payable {
