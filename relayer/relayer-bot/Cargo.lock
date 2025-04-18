@@ -3973,7 +3973,10 @@ dependencies = [
  "ethers",
  "serde",
  "serde_json",
+ "solana-client",
+ "solana-sdk",
  "tokio",
+ "tokio-tungstenite 0.15.0",
 ]
 
 [[package]]

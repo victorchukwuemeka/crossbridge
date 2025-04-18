@@ -3,6 +3,7 @@ use std::error::Error;
 
 mod solana_listener;
 mod ethereum_listener;
+mod ethereum_minter;
 
 
 
