@@ -20,7 +20,7 @@ pub async fn mint_wsol(to: &str, amount: u64) -> Result<(), Box<dyn Error>> {
     // Load contract ABI 
    // let abi = include_str!("../abi/Wsol.json");
     let abi = include_str!("../../../smart_contracts/artifacts/contracts/wSol/WSol.sol/WSol.json");
-    let contract_address: Address = "0xYourContractAddress".parse()?;
+    let contract_address: Address = "0x5FbDB2315678afecb367f032d93F642f64180aa3".parse()?;
     
     // Parse the ABI and prepare the contract
     let contract = web3.eth().contract(web3::ethabi::Contract::load(abi.as_bytes())?);
