@@ -1,11 +1,67 @@
 use std::time;
 
 use std::error::Error;
+use web3::transports::ws::{WebSocket, Response};
+
+use web3::api::Web3;
+use web3::types::{FilterBuilder, Log};
 //use tokio::time;
 
 pub async fn start()->Result<(), Box<dyn Error>>{
-    println!(" listening to ethereum LockEvent ");
+    
+    //connecting to the ethereum node in my localnet websocket 
+    let web_socket = WebSocket::new("ws://127.0.0.1:8545").await?;
+    let web3 = Web3::new(web_socket);
+
+    // Contract address
+    let contract_address: Address = "0x5FbDB2315678afecb367f032d93F642f64180aa3".parse()?;
+    
+
+    //filter the data 
+    let filter = FilterBuilder::default()
+        .address(vec![contract_address])
+        .topics(
+            Some(vec!["0xYourBurnEventSignatureHash".parse().unwrap()]),
+            None, None, None
+        )
+        .build();
+
+
+     let sub = web3.eth_subscribe().subscribe_logs(filter).await?;
+    
+     while let Some(log_result) = sub.next().await{
+        match log_result{
+            Ok(log)=>{
+                println("event log");
+
+                let (user, amount, solana_addrress) = parse_burn_event(filter);
+
+                solana_unlocker::unlock(user, amount, solana_addr).await?;
+            }
+            Err(e)=>{
+                println!("Error: {:?}", e);
+            }
+        }
+     } 
+
     tokio::time::sleep(time::Duration::from_secs(5)).await;
-    println!("Solana LockEvent handled!");
+    
     Ok(())
-} 
+}
+
+
+
+fn parse_burn_event(log: Log) -> Result<(H160, U256, String), Box<dyn std::error::Error>> {
+    // Make sure data length is what you expect
+    let data = log.data.0.clone();
+    
+    // Manually decode bytes: address (20 bytes), amount (32), solana_addr (32 or dynamic)
+    let user = H160::from_slice(&data[0..20]);
+    let amount = U256::from_big_endian(&data[20..52]);
+    let solana_addr = String::from_utf8(data[52..].to_vec())?; 
+
+    Ok((user, amount, solana_addr))
+}
+
+
+
