@@ -1,4 +1,7 @@
 [toolchain]
+channel = "1.82.0"
+components = ["rustc", "cargo", "rustfmt"]
+
 
 [features]
 resolution = true
@@ -11,8 +14,18 @@ bridge_program = "28AQpwDXyQPTkcuJweUQFfAMqTkDZfNME71Anic7o5rM"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
+[source.crates-io]
+replace-with = 'default' 
+
+
+[source.default]
+registry = "https://github.com/rust-lang/crates.io-index"
+
+
+
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "cargo test" 
+

@@ -17,7 +17,7 @@ CrossBridge is a **Solana-to-Ethereum asset bridge** that allows users to seamle
 🛠 **Solana Smart Contract:** Rust (Anchor Framework)  
 🛠 **Ethereum Smart Contract:** Solidity  
 🛠 **Cross-Chain Relayer:** Rust  
-🛠 **Frontend (Optional):** Next.js (TypeScript)  
+🛠 **Frontend (Optional):** rust framework
 🛠 **Wallets:** Phantom (Solana) & MetaMask (Ethereum)  
 
 
@@ -158,7 +158,7 @@ The goal is to create a cross-chain bridge that lets users lock **SOL** on Solan
 - **Action:** Implement cross-chain logic to handle minting and burning of wSOL.
 
 #### **Step 4: Develop Frontend (Optional)**
-- **Action:** Write a frontend (e.g., Next.js + React) to allow users to interact with the bridge.
+- **Action:** Write a frontend (e.g., leptos ) to allow users to interact with the bridge.
 - **Action:** Implement wallet integrations for **Phantom** and **MetaMask**.
 - **Action:** Display balance, transaction status, and history.
 

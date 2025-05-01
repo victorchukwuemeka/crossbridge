@@ -11,16 +11,25 @@ use anchor_client::{
 use std::rc::Rc;
 use std::str::FromStr;
 
+use bridge_program::accounts;
+use bridge_program::instruction;
+use bridge_program::BridgeAccount;
+
+
+
+
 #[tokio::test]
+#[test]
 async fn test_initialize_lock_unlock() -> anyhow::Result<()> {
     // Setup
     let program_id = Pubkey::from_str("28AQpwDXyQPTkcuJweUQFfAMqTkDZfNME71Anic7o5rM")?;
     let user = Keypair::new();
-    let bridge_account = Keypair::new();
+    let (bridge_account, _bump) = Pubkey::find_program_address(&[b"bridge_vault"], &program_id); 
+
 
     // Connect to devnet
     let client = Client::new_with_options(
-        Cluster::Devnet,
+        Cluster::Localnet,
         Rc::new(user.clone()),
         CommitmentConfig::processed(),
     );
@@ -38,14 +47,14 @@ async fn test_initialize_lock_unlock() -> anyhow::Result<()> {
     program
         .request()
         .accounts(bridge_program::accounts::Initialize {
-            bridge_account: bridge_account.pubkey(),
+            bridge_account: bridge_account,
             user: user.pubkey(),
             system_program: system_program::ID,
         })
         .args(bridge_program::instruction::Initialize {})
-        .signer(&bridge_account)
         .send()
         .await?;
+
 
     // Lock SOL
     let amount = 1 * LAMPORTS_PER_SOL;
@@ -53,13 +62,14 @@ async fn test_initialize_lock_unlock() -> anyhow::Result<()> {
     program
         .request()
         .accounts(bridge_program::accounts::LockSol {
-            bridge_account: bridge_account.pubkey(),
+            bridge_account: bridge_account,
             user: user.pubkey(),
             system_program: system_program::ID,
         })
         .args(bridge_program::instruction::LockSol { amount })
         .send()
         .await?;
+
 
     // Unlock SOL
     println!("Unlocking 1 SOL...");

@@ -1,0 +1,22 @@
+UI Element,Data Shown,Data Source,Retrieval Method
+Header - Network,Network: Solana Devnet | Ethereum Sepolia,User wallet connection,window.solana.chainId / window.ethereum.chainId
+Header - Wallet,Connected as: SOL: FjGh3..8aK2 | ETH: 0x892..4f1,User wallets,window.solana.publicKey / window.ethereum.selectedAddress
+Balance - SOL Balance,SOL Balance: ◎12.5,Solana RPC,getAccountInfo(user_wallet)
+Balance - WSOL Balance,WSOL Balance: Ξ10.0,Ethereum RPC,eth_getBalance(wsole_contract, user_eth_address)
+Balance - Vault SOL,Vault SOL: ◎1,240,Solana Program Account,getAccountInfo(vault_address)
+Balance - Bridge Fee,Bridge Fee: ◎0.1 + ~$1.50 gas,Relayer API,/fee-estimate?amount=X
+Lock Input,[◎ Amount to Lock],User input,HTML input field
+Lock Button,[Lock & Mint WSOL],User action,onClick → submitLockTx()
+Burn Input,[Ξ Amount to Burn],User input,HTML input field
+Burn Button,[Burn & Unlock SOL],User action,onClick → submitBurnTx()
+TX History - Mint,◎5.0 → Ξ5.0 ✅,Solana/Ethereum TX logs,solana.getConfirmedSignaturesForAddress2() / eth_getTransactionReceipt()
+TX History - Burn,Ξ2.0 → ◎2.0 🔄,Ethereum TX pool,eth_pendingTransactions filter
+TX History - Failed,◎1.5 → Ξ1.5 ❌,Transaction simulation,solana.simulateTransaction() error
+Relayer - Last Block,Last Block: Solana #184,292,Chain RPCs,getLatestBlockhash() / eth_blockNumber()
+Relayer - Latency,Latency: 12.3s avg,Relayer metrics,/relayer-status → responseTime
+Relayer - Watchtowers,Watchtowers: 5/5 online,Health check API,/health?service=watchtower
+Contracts - Solana,Solana: 28AQ..18cf,Program deployment,process.env.REACT_APP_SOLANA_PROGRAM_ID
+Contracts - WSOL,WSOL: 0x3b9..e7a,Contract deployment,process.env.REACT_APP_WSOL_ADDRESS
+Footer - Audit,Audited by Halborn (2023-12-01),Static config,Static text
+Footer - Volume,24h Vol: ◎24,500,Relayer analytics,/analytics/volume
+Footer - Version,Version: v1.2.0,package.json,process.env.npm_package_version

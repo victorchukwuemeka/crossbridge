@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "programs/*"
+    "programs/bridge-program"
 ]
 resolver = "2"
 
@@ -12,3 +12,6 @@ codegen-units = 1
 opt-level = 3
 incremental = false
 codegen-units = 1
+
+
+

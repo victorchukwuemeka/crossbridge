@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Solana App</title>
+    <style>body { font-family: sans-serif; }</style>
+    <style>
+        .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .action-panel > div { border: 1px solid #ccc; padding: 1rem; }
+        button { display: block; margin: 0.5rem 0; }
+      </style>
+
+<style>
+    :root {
+      --primary: #9945FF;
+      --secondary: #14F195;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .grid-2-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .grid-2-col {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .tx-item {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin: 0.5rem 0;
+    }
+    
+    .tx-item .completed { color: green; }
+    .tx-item .pending { color: orange; }
+    .tx-item .failed { color: red; }
+  </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import init from "./pkg/frontend.js";
+      init().then(() => {
+        console.log("WASM loaded");
+      });
+    </script>
+  </body>
+</html>
+
