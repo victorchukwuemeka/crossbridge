@@ -1,1 +1,5 @@
 target/
+# Solana ledger files
+/test-ledger/
+/ledger/
+solana/validator.log
