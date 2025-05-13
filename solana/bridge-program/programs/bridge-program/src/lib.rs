@@ -40,6 +40,7 @@ pub mod bridge_program {
         Ok(())
     }
 
+    
 
     pub fn un_lock_sol(ctx: Context<UnLockSol>, amount:u64)-> Result<()>{
         let bridge_program =  &mut ctx.accounts.bridge_account;
@@ -94,6 +95,8 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
+
+
 #[derive(Accounts)]
 pub struct LockSol<'info>{
     #[account(
@@ -109,6 +112,8 @@ pub struct LockSol<'info>{
 
 }
 
+
+
 #[derive(Accounts)]
 pub struct UnLockSol<'info>{
     #[account(
@@ -120,8 +125,6 @@ pub struct UnLockSol<'info>{
     pub user: Signer<'info>,
     pub system_program: Program<'info,System>, 
 }
-
-
 
 
 
