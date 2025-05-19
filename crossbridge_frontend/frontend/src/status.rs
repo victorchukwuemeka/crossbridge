@@ -6,6 +6,7 @@ use leptos::prelude::{ElementChild, ClassAttribute};
 pub fn NetworkStatus() -> impl IntoView {
     view! {
         <div class="status-panel">
+        
             <h3>"Recent Transactions"</h3>
             <ul>
                 <li>"◎5.0 → Ξ5.0 | ✅ Minted"</li>

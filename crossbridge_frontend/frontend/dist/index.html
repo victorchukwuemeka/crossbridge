@@ -1,10 +1,17 @@
 <!DOCTYPE html>
 <html>
-  <head><link rel="modulepreload" href="/frontend-509a3b388113909e.js" crossorigin="anonymous" integrity="sha384-MUNID8lcxBLB5kJAXKN+S2lkm4SOZxbqgZzyECkgR9WEwJC+/++ulDbMzRnyCxA+"><link rel="preload" href="/frontend-509a3b388113909e_bg.wasm" crossorigin="anonymous" integrity="sha384-uWbXWM5KrnC4cDA/Uk5gwV4RyQcN8qtNIHGOA/JCOPM81ZPl/8kz5fy6zQGtjsp9" as="fetch" type="application/wasm"></head>
+  <head>
+    <meta charset="utf-8">
+    <title>Leptos App</title>
+  
+  <link rel="modulepreload" href="/frontend-8eafaf165589d702.js" crossorigin="anonymous" integrity="sha384-n0f0QdOJbsStL2Zq1I8gDQq7SZRhaayNyqcPYuWJJnYYEG1kIHRtv6DUzQ1mxOh/"><link rel="preload" href="/frontend-8eafaf165589d702_bg.wasm" crossorigin="anonymous" integrity="sha384-XCMsgtOI0NsURcJVCM5iMhWEGg3GYZXmICvTxmsNiEZx4FLerWPfve94vqaZBig1" as="fetch" type="application/wasm"></head>
   <body>
+    <!-- This div must exist -->
+    <div id="root"></div>
+  
 <script type="module">
-import init, * as bindings from '/frontend-509a3b388113909e.js';
-const wasm = await init({ module_or_path: '/frontend-509a3b388113909e_bg.wasm' });
+import init, * as bindings from '/frontend-8eafaf165589d702.js';
+const wasm = await init({ module_or_path: '/frontend-8eafaf165589d702_bg.wasm' });
 
 
 window.wasmBindings = bindings;

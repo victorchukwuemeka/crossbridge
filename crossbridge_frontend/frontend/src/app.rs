@@ -3,10 +3,12 @@ use crate::wallet::WalletStatus;
 use crate::bridge::BridgeActions;
 use crate::status::NetworkStatus;
 use leptos::prelude::*;
+use crate::models::state::WalletState;
 
 
 #[component]
 pub fn App() -> impl IntoView {
+    provide_context(WalletState::new());
     view! {
         <header>
             <h1>"SOLANA ⇄ ETHEREUM BRIDGE"</h1>
@@ -16,6 +18,7 @@ pub fn App() -> impl IntoView {
         <main class="grid-2-col">
             <BridgeActions/>
             <NetworkStatus/>
+            
         </main>
 
         <footer>
