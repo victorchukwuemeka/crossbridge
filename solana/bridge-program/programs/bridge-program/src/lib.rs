@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("28AQpwDXyQPTkcuJweUQFfAMqTkDZfNME71Anic7o5rM");
+declare_id!("911VdUg43JGvomS2eCqKHJcUZ6J9SCjb371w6Xst7YMD");
 
 #[program]
 pub mod bridge_program {
@@ -30,6 +30,9 @@ pub mod bridge_program {
             ]
         )?;
 
+        
+        ctx.accounts.bridge_account.total_locked += amount;
+
         //emit this event so it will be relayed
         emit!(LockEvent{
             user :ctx.accounts.user.key(),
@@ -40,7 +43,7 @@ pub mod bridge_program {
         Ok(())
     }
 
-    
+
 
     pub fn un_lock_sol(ctx: Context<UnLockSol>, amount:u64)-> Result<()>{
         let bridge_program =  &mut ctx.accounts.bridge_account;
@@ -52,7 +55,7 @@ pub mod bridge_program {
         }
 
         let transfer_instructions =system_instruction::transfer(
-            &bridge_program.key(), 
+            &bridge_program.key(),
             &user_account.key(),
             amount
         );
@@ -85,11 +88,11 @@ pub struct Initialize<'info> {
         init,
         payer = user,
         space = 8 + 8 + 1, // discriminator + u64 + bump
-        seeds = [b"bridge_vault"],
+        seeds = [b"bridge_vault_v1"],
         bump
     )]
     pub bridge_account: Account<'info, BridgeAccount>,
-  
+
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -101,7 +104,7 @@ pub struct Initialize<'info> {
 pub struct LockSol<'info>{
     #[account(
         mut,
-        seeds = [b"bridge_vault"],
+        seeds = [b"bridge_vault_v1"],
         bump = bridge_account.bump
     )]
     pub bridge_account: Account<'info, BridgeAccount>,
@@ -118,12 +121,12 @@ pub struct LockSol<'info>{
 pub struct UnLockSol<'info>{
     #[account(
         mut,
-        seeds = [b"bridge_vault"],
+        seeds = [b"bridge_vault_v1"],
         bump = bridge_account.bump
     )]
     pub bridge_account : Account<'info, BridgeAccount>,
     pub user: Signer<'info>,
-    pub system_program: Program<'info,System>, 
+    pub system_program: Program<'info,System>,
 }
 
 
