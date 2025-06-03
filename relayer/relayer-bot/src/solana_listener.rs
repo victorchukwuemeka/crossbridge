@@ -133,13 +133,12 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
                                 .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
                                 .unwrap_or_else(|| "Invalid timestamp".to_string()));
 
-                            let user = "hhhhf";
-                            //event.user;
+                            let user = event.user;
                             let amount = event.amount;
 
                             
                             // Mint tokens on Ethereum side
-                           // crate::ethereum_minter::mint_wsol(user, amount).await?;
+                           crate::ethereum_minter::mint_wsol(&user.to_string(), amount).await?;
                         },
                          Err(_) => println!("⚠️ Found program data, but not a LockEvent"),
                     }

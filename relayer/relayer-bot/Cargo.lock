@@ -1402,6 +1402,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dotenv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+
+[[package]]
 name = "eager"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3310,11 +3316,13 @@ dependencies = [
  "base64 0.22.1",
  "borsh 1.5.7",
  "chrono",
+ "dotenv",
  "futures",
  "hex",
  "secp256k1",
  "serde",
  "serde_json",
+ "sha3 0.10.8",
  "solana-client",
  "solana-sdk",
  "solana-transaction-status",

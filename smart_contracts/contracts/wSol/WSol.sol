@@ -4,9 +4,12 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+
+
 contract WSol is ERC20, Ownable {
     constructor(address initialOwner) ERC20("Wrapped SOL", "wSOL") Ownable(initialOwner) {}
-
+    
+    
     function deposit() public payable {
         _mint(msg.sender, msg.value);
     }
@@ -17,7 +20,10 @@ contract WSol is ERC20, Ownable {
         payable(msg.sender).transfer(amount);
     }
 
-    function mint(address to, uint256 amount) public onlyOwner {
+    mapping(bytes32 => bool) public processedTxs;
+
+    function mint(address to, uint256 amount, bytes32 solanaTxHash) public onlyOwner {
+        require(!processedTxs[solanaTxHash], "Transaction already processed");
         _mint(to, amount);
     }
 

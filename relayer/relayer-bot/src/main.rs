@@ -8,6 +8,7 @@ mod solana_unlocker;
 async fn main() -> Result<(), Box<dyn Error>> {
     println!("Relayer bot starting up...");
     
+    dotenv::dotenv().ok(); 
     tokio::try_join!(
         solana_listener::start(),
         //ethereum_listener::start(),
