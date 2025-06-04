@@ -24,6 +24,8 @@ contract WSol is ERC20, Ownable {
 
     function mint(address to, uint256 amount, bytes32 solanaTxHash) public onlyOwner {
         require(!processedTxs[solanaTxHash], "Transaction already processed");
+        
+         processedTxs[solanaTxHash] = true;
         _mint(to, amount);
     }
 

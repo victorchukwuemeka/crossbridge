@@ -15,7 +15,7 @@ pub mod bridge_program {
         Ok(())
     }
 
-    pub fn lock_sol(ctx: Context<LockSol>, amount:u64) -> Result<()>{
+    pub fn lock_sol(ctx: Context<LockSol>, amount:u64, eth_address: String) -> Result<()>{
         let transfer = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.user.key(),
             &ctx.accounts.bridge_account.key(),
@@ -36,6 +36,7 @@ pub mod bridge_program {
         //emit this event so it will be relayed
         emit!(LockEvent{
             user :ctx.accounts.user.key(),
+            eth_address,
             amount,
             timestamp:Clock::get()?.unix_timestamp,
         });
@@ -46,6 +47,7 @@ pub mod bridge_program {
 
 
     pub fn un_lock_sol(ctx: Context<UnLockSol>, amount:u64)-> Result<()>{
+
         let bridge_program =  &mut ctx.accounts.bridge_account;
         let user_account  = &ctx.accounts.user;
         let locked_sol = bridge_program.total_locked;
@@ -79,6 +81,19 @@ pub mod bridge_program {
 
         Ok(())
     }
+
+
+    pub fn get_bridge_balance(ctx: Context<GetBridgeBalance>)->Result<u64>{
+        Ok(ctx.accounts.bridge_account.total_locked)
+    }
+
+
+    pub fn get_user_balance(ctx: Context<GetUserBalance>)->Result<u64>{
+        Ok(ctx.accounts.user_balance.locked_amount)
+    }
+
+
+
 }
 
 
@@ -99,7 +114,6 @@ pub struct Initialize<'info> {
 }
 
 
-
 #[derive(Accounts)]
 pub struct LockSol<'info>{
     #[account(
@@ -108,6 +122,16 @@ pub struct LockSol<'info>{
         bump = bridge_account.bump
     )]
     pub bridge_account: Account<'info, BridgeAccount>,
+
+    #[account(
+        init_if_needed,
+        payer = user,
+        space = 8 + 32 + 8 + 1, // discriminator + pubkey + u64 + bump
+        seeds = [b"user_balance", user.key().as_ref()],
+        bump
+    )]
+    pub user_balance: Account<'info, UserBalance>,
+
 
     #[account(mut)]
     pub user: Signer<'info>,
@@ -125,8 +149,29 @@ pub struct UnLockSol<'info>{
         bump = bridge_account.bump
     )]
     pub bridge_account : Account<'info, BridgeAccount>,
+    
     pub user: Signer<'info>,
     pub system_program: Program<'info,System>,
+}
+
+
+#[account]
+pub struct UserBalance {
+   pub user: Pubkey,
+   pub locked_amount: u64,
+   pub bump: u8,
+}
+
+
+#[derive(Accounts)]
+pub struct GetUserBalance<'info>{
+    #[account(
+        seeds = [b"user_balance", user.key().as_ref()],
+        bump = user_balance.bump
+    )]
+    pub user_balance:Account<'info, UserBalance>,
+
+    pub user: AccountInfo<'info>,
 }
 
 
@@ -137,10 +182,23 @@ pub struct BridgeAccount{
     pub total_locked: u64,
 }
 
+#[derive(Accounts)]
+pub struct GetBridgeBalance<'info>{
+     #[account(
+        mut,
+        seeds = [b"bridge_vault_v1"],
+        bump = bridge_account.bump
+    )]
+
+    pub bridge_account:Account<'info, BridgeAccount>
+}
+
+
 
 #[event]
 pub struct LockEvent {
     pub user :Pubkey,
+    pub eth_address :String,
     pub amount :u64,
     pub timestamp : i64,
 }

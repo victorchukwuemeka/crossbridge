@@ -1,6 +1,6 @@
 use web3::{
     api::Web3, contract::{Contract, Options}, transports::{Http, WebSocket},
-    types::{Address, TransactionParameters, U256,H160}
+    types::{Address, TransactionParameters, U256,H160,H256}
 };
 use hex::decode;
 use std::error::Error;
@@ -26,7 +26,22 @@ pub fn solana_to_ethereum_address(solana_address: &str) -> Result<Address, Box<d
     Ok(eth_address)
 }
 
-pub async fn mint_wsol(to: &str, amount: u64) -> Result<(), Box<dyn Error>> {
+
+pub fn solana_signature_to_bytes32(signature: &str) -> Result<[u8; 32], Box<dyn std::error::Error>> {
+    // Decode base58 signature
+    let sig_bytes = bs58::decode(signature).into_vec()?;
+    
+    // Hash it to get 32 bytes
+    let hash = Keccak256::digest(&sig_bytes);
+    let mut bytes32 = [0u8; 32];
+    bytes32.copy_from_slice(&hash);
+    
+    Ok(bytes32)
+}
+
+
+
+pub async fn mint_wsol(to: &str, amount: u64, solana_tx_signature: &str) -> Result<(), Box<dyn Error>> {
     println!("✅ Minting {} wSOL to {}", amount, to);
     
     // 1. Connect to dev node
@@ -102,17 +117,20 @@ pub async fn mint_wsol(to: &str, amount: u64) -> Result<(), Box<dyn Error>> {
         ..Default::default()
     };
 
-
+     // Convert signature to bytes32 for the contract
+    let solana_tx_hash = solana_signature_to_bytes32(solana_tx_signature)?;
+    let solana_tx_hash_h256 = H256::from_slice(&solana_tx_hash);
 
 
     // 10. Create SecretKeyRef for signing
     let secret_key_ref = SecretKeyRef::new(&secret_key);
     
+
     
     // 6. Call the mint function using the account from the node
     // We'll pass the from address directly to the call method
     let tx_hash = contract
-        .signed_call("mint", (to_address, amount_u256), options,secret_key_ref)
+        .signed_call("mint", (to_address, amount_u256, solana_tx_hash_h256), options,secret_key_ref)
        .await?;
     
     println!("Mint transaction hash: {:?}", tx_hash);

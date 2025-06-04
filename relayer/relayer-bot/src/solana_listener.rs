@@ -138,7 +138,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
 
                             
                             // Mint tokens on Ethereum side
-                           crate::ethereum_minter::mint_wsol(&user.to_string(), amount).await?;
+                           crate::ethereum_minter::mint_wsol(&user.to_string(), amount, &signature.to_string()).await?;
                         },
                          Err(_) => println!("⚠️ Found program data, but not a LockEvent"),
                     }
