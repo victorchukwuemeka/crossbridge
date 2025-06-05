@@ -13,7 +13,7 @@ use solana_sdk::bs58;
 
 
 // 1: Simple hash-based derivation
-pub fn solana_to_ethereum_address(solana_address: &str) -> Result<Address, Box<dyn std::error::Error>> {
+/*pub fn solana_to_ethereum_address(solana_address: &str) -> Result<Address, Box<dyn std::error::Error>> {
     // Decode the Solana address from base58
     let solana_bytes = bs58::decode(solana_address).into_vec()?;
     
@@ -24,8 +24,21 @@ pub fn solana_to_ethereum_address(solana_address: &str) -> Result<Address, Box<d
     let eth_address = H160::from_slice(&hash[12..]);
     
     Ok(eth_address)
-}
+}*/
 
+pub fn string_to_ethereum_address(eth_address: &str) -> Result<H160, Box<dyn std::error::Error>> {
+    // Remove "0x" prefix if present
+    let cleaned_address = if eth_address.starts_with("0x") {
+        &eth_address[2..]
+    } else {
+        eth_address
+    };
+    
+    // Parse the hex string to H160
+    let address = H160::from_str(&format!("0x{}", cleaned_address))?;
+    
+    Ok(address)
+}
 
 pub fn solana_signature_to_bytes32(signature: &str) -> Result<[u8; 32], Box<dyn std::error::Error>> {
     // Decode base58 signature
@@ -40,8 +53,11 @@ pub fn solana_signature_to_bytes32(signature: &str) -> Result<[u8; 32], Box<dyn 
 }
 
 
-
-pub async fn mint_wsol(to: &str, amount: u64, solana_tx_signature: &str) -> Result<(), Box<dyn Error>> {
+//this function is for minting the fungible token
+//1. get the  rpc,smart_contract address, and  the privatekey
+//2. network transport for communication
+//3 remove the private key prefix if 0x
+pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_signature: &str) -> Result<(), Box<dyn Error>> {
     println!("✅ Minting {} wSOL to {}", amount, to);
     
     // 1. Connect to dev node
@@ -93,7 +109,7 @@ pub async fn mint_wsol(to: &str, amount: u64, solana_tx_signature: &str) -> Resu
     //println!("Showing the Contract {:?}", contract);
 
 
-    let etheruem_address = solana_to_ethereum_address(to)?;
+    let etheruem_address = string_to_ethereum_address(&eth_address)?;
 
 
     // 4. Prepare transaction parameters

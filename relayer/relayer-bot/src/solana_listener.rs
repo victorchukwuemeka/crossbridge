@@ -1,6 +1,6 @@
-use std::{error::Error, str::FromStr};
+use std::{error::Error, str::FromStr, collections::HashSet};
 use solana_client::rpc_client::RpcClient;
-use solana_sdk::{pubkey::Pubkey, commitment_config::CommitmentConfig};
+use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature};
 use solana_transaction_status::{UiTransactionEncoding, option_serializer::OptionSerializer};
 use tokio::time::{Duration, sleep};
 
@@ -9,14 +9,52 @@ use borsh::{BorshDeserialize};
 #[derive(Debug, BorshDeserialize)]
 pub struct LockEvent {
     pub user: Pubkey,
+    pub eth_address: String,
     pub amount: u64,
     pub timestamp: i64,
 }
 
+//  to track processed signatures
+static mut PROCESSED_SIGNATURES: Option<HashSet<String>> = None;
+const PROCESSED_FILE: &str = "processed_sigs.txt";
 
 
+fn get_processed_signatures() -> &'static mut HashSet<String> {
+    unsafe {
+        PROCESSED_SIGNATURES.get_or_insert_with(||  {
+            load_processed_signature().unwrap_or_else(|_| HashSet::new())
+        })
+    }
+}
 
+fn load_processed_signature()->Result<HashSet<String>, Box<dyn Error>>{
+    if std::path::Path::new(PROCESSED_FILE).exists() {
+        let data = std::fs::read_to_string(PROCESSED_FILE)?;
+        let signatures: HashSet<String> = serde_json::from_str(&data)?;
+        println!("📁 Loaded {} processed signatures from file", signatures.len());
+        Ok(signatures)
+    }else {
+        println!("📁 No existing processed signatures file found, starting fresh");
+        Ok(HashSet::new())
+    }
+}
 
+fn save_processed_signatures()->Result<(), Box<dyn Error>>{
+    let signatures = get_processed_signatures();
+    let data = serde_json::to_string(signatures)?;
+    std::fs::write(PROCESSED_FILE, data)?;
+    println!("💾 Saved {} processed signatures to file", signatures.len());
+    Ok(())
+}
+
+//1. get the solana api
+//2. use the solana api to get rpcClient.
+//3. check if  the connection with the rpc client is valid
+//4. get the program id
+//5get the signature to recent transactions
+//6 check if the transactions are empty.
+//7. get the transaction details 
+//8. return handle logs. 
 pub async fn start() -> Result<(), Box<dyn Error>> {
     let rpc_url = "https://api.devnet.solana.com";
    // let rpc_url = "https://devnet.solana.com";
@@ -58,6 +96,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
             }
         };
 
+
         if signatures.is_empty() {
             println!("ℹ️ No transactions found for this program yet");
             sleep(Duration::from_secs(10)).await;
@@ -66,6 +105,12 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
 
         
         for sig_info in signatures.iter().take(5) { // Check last 5 transactions
+
+            //  to skip already processed transactions
+            if get_processed_signatures().contains(&sig_info.signature) {
+                continue;
+            }
+
             let signature = solana_sdk::signature::Signature::from_str(&sig_info.signature)?;
             
             // Get transaction details
@@ -127,6 +172,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
                         Ok(event)=>{
                              println!("🎉 ✅ LockEvent found in tx: {}", signature);
                              println!("   User: {}", event.user);
+                             println!("  Eth_Address:{}", event.eth_address);
                              println!("   Amount: {}", event.amount);
                              println!("   Timestamp: {} ({})", event.timestamp, 
                                 chrono::DateTime::from_timestamp(event.timestamp, 0)
@@ -135,12 +181,30 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
 
                             let user = event.user;
                             let amount = event.amount;
+                            let eth_address= event.eth_address;
 
                             
                             // Mint tokens on Ethereum side
-                           crate::ethereum_minter::mint_wsol(&user.to_string(), amount, &signature.to_string()).await?;
+                           crate::ethereum_minter::mint_wsol(&user.to_string(), amount, &eth_address, &signature.to_string()).await?;
+
+                            // Mark as processed only after successful minting
+                           get_processed_signatures().insert(signature.to_string());
+                           save_processed_signatures()?;
+                           println!("✅ Transaction processed and marked: {}", signature);
+                           
+                          /*  match crate::ethereum_minter::mint_wsol(&user.to_string(), amount, &eth_address, &signature.to_string()) {
+                               Ok(_) =>{
+                                //Mark as processed only after successful minting
+                                get_processed_signatures().insert(signature.to_string());
+                                println!("✅ Transaction processed and marked: {}", signature);
+                               }
+                               Err(e)=>{
+                                println!("❌ Minting failed, will retry: {:?}", e);
+                                return Err(e);
+                               }
+                           }*/
                         },
-                         Err(_) => println!("⚠️ Found program data, but not a LockEvent"),
+                        Err(_) => println!("⚠️ Found program data, but not a LockEvent"),
                     }
                 },
                 Err(e) => println!("❌ Failed to decode base64: {}", e),
