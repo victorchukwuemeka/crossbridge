@@ -12,19 +12,6 @@ use web3::signing::SecretKeyRef;
 use solana_sdk::bs58;
 
 
-// 1: Simple hash-based derivation
-/*pub fn solana_to_ethereum_address(solana_address: &str) -> Result<Address, Box<dyn std::error::Error>> {
-    // Decode the Solana address from base58
-    let solana_bytes = bs58::decode(solana_address).into_vec()?;
-    
-    // Hash the Solana address bytes to get Ethereum address
-    let hash = Keccak256::digest(&solana_bytes);
-    
-    // Take the last 20 bytes as Ethereum address
-    let eth_address = H160::from_slice(&hash[12..]);
-    
-    Ok(eth_address)
-}*/
 
 pub fn string_to_ethereum_address(eth_address: &str) -> Result<H160, Box<dyn std::error::Error>> {
     // Remove "0x" prefix if present
@@ -58,7 +45,7 @@ pub fn solana_signature_to_bytes32(signature: &str) -> Result<[u8; 32], Box<dyn 
 //2. network transport for communication
 //3 remove the private key prefix if 0x
 pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_signature: &str) -> Result<(), Box<dyn Error>> {
-    println!("✅ Minting {} wSOL to {}", amount, to);
+    println!("✅ Minting {} wSOL to {}", amount, eth_address);
     
     // 1. Connect to dev node
     // 1. Configuration from environment
@@ -114,7 +101,9 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
 
     // 4. Prepare transaction parameters
     let to_address: Address = etheruem_address;
-    let amount_u256 = U256::from(amount);
+    // Multiply lamports (1e9) by another 1e9 to get to 1e18
+    let scaled_amount = U256::from(amount) * U256::exp10(9); // 1e9
+    //let amount_u256 = U256::from(amount);
 
 
     // 7. Get nonce for the sender
@@ -146,7 +135,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     // 6. Call the mint function using the account from the node
     // We'll pass the from address directly to the call method
     let tx_hash = contract
-        .signed_call("mint", (to_address, amount_u256, solana_tx_hash_h256), options,secret_key_ref)
+        .signed_call("mint", (to_address, scaled_amount, solana_tx_hash_h256), options,secret_key_ref)
        .await?;
     
     println!("Mint transaction hash: {:?}", tx_hash);
