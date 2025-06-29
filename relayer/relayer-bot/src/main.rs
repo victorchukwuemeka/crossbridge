@@ -11,7 +11,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     dotenv::dotenv().ok(); 
     tokio::try_join!(
         solana_listener::start(),
-        //ethereum_listener::start(),
+        ethereum_listener::start(),
     )?;
     
     Ok(())
