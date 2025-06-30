@@ -14,10 +14,12 @@ use hex; // For hex decoding
 use jsonrpsee::rpc_params;
 use crate::solana_unlocker;
 
+use web3::types::U256; 
+
 // Minimal type definitions
 type Address = [u8; 20];  // Ethereum address
 type Hash = [u8; 32];     // For topics/hashes
-type U256 = [u8; 32];     // 256-bit unsigned integer
+//type U256 = [u8; 32];     // 256-bit unsigned integer
 
 
 // Calculate event signature hash (replaces alloy/ethers keccak256)
@@ -125,9 +127,17 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
         
         // Process logs
         for log in logs {
+            println!("let run the log");
+            let log_data = parse_burn_log(&log);
+            println!("this is the LOG Data {:?}", log_data);
+            
             if let Ok((user, amount)) = parse_burn_log(&log) {
-                println!("Parsed event - User: {:?}, Amount: {}", hex::encode(user), bytes_to_u256(&amount));
-               //solana_unlocker::unlock(hex::encode(user), bytes_to_u256(&amount)).await?;
+                println!("Parsed event - User: {:?}, Amount: {:?}", hex::encode(user), amount);
+                let solana_address = "GQXU6fF5e8jSJGSMSVzyJ1AMp1ozzJQqRpEwjr4QKKdR";
+                let amount_u64 = amount.as_u64();
+               solana_unlocker::unlock(hex::encode(user),amount_u64,solana_address.to_string()).await?;
+            }else {
+                println!("i did not get the User And Amount Right");
             }
         }
         
@@ -163,15 +173,15 @@ async fn get_logs_in_range(
         "topics": [format!("0x{}", hex::encode(topic))]
     });
 
-    println!("🔍 DEBUG - Filter being sent:");
-    println!("   fromBlock: 0x{:x}", from_block);
-    println!("   toBlock: 0x{:x}", to_block);
+    //println!("🔍 DEBUG - Filter being sent:");
+    //println!("   fromBlock: 0x{:x}", from_block);
+    //println!("   toBlock: 0x{:x}", to_block);
     //println!("   address: 0x{}", hex::encode(address));
     //println!("   topic: 0x{}", hex::encode(topic));
     // println!("   Full param JSON: {}", serde_json::to_string_pretty(params).unwrap());
     
     let response: Value = client.request("eth_getLogs",  rpc_params![filter]).await?;
-    println!("Response {}", response);
+   // println!("Response {}", response);
     Ok(response.as_array().cloned().unwrap_or_default())
 }
 
@@ -204,14 +214,23 @@ fn parse_burn_log(log: &Value) -> Result<(Address, U256), Box<dyn Error>> {
     let data = log["data"].as_str().ok_or("Missing data")?;
     
     // Parse user address (topic 1)
-    let user = hex::decode(&topics[1].as_str().unwrap()[2..])?
+    let user_topic = topics[1].as_str().unwrap();
+    let user_bytes = hex::decode(&user_topic[26..])?;
+    let user:Address = user_bytes.try_into().map_err(|_| "Invalid address")?;
+
+
+    /*let user = hex::decode(&topics[1].as_str().unwrap()[2..])?
         .try_into()
-        .map_err(|_| "Invalid address length")?;
+        .map_err(|_| "Invalid address length")?;*/
     
     // Parse amount (first 32 bytes of data)
-    let amount = hex::decode(&data[2..66])? // Skip '0x', take first 64 hex chars
+   let amount = U256::from_str_radix(&data[2..], 16)?;
+    /*let amount = hex::decode(&data[2..66])? // Skip '0x', take first 64 hex chars
         .try_into()
-        .map_err(|_| "Invalid U256 length")?;
+        .map_err(|_| "Invalid U256 length")?;*/
+
+    println!("The User is :{:?}", user);
+    println!("The amount is :{:?}", amount);
     
     Ok((user, amount))
 }
