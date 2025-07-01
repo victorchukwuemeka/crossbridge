@@ -102,7 +102,8 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     // 4. Prepare transaction parameters
     let to_address: Address = etheruem_address;
     // Multiply lamports (1e9) by another 1e9 to get to 1e18
-    let scaled_amount = U256::from(amount) * U256::exp10(9); // 1e9
+    let scaled_amount = U256::from(amount);
+    //* U256::exp10(9); // 1e9
     //let amount_u256 = U256::from(amount);
 
 

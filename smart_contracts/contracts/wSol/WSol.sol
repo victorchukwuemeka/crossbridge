@@ -11,21 +11,6 @@ contract WSol is ERC20, Ownable {
         return 9;
     }
     
-    function deposit() public payable {
-        // Convert from 18 decimals (wei) to 9 decimals (wSOL)
-        // This maintains 1:1 ratio between ETH and wSOL
-        uint256 wsolAmount = msg.value / 10**9;
-        _mint(msg.sender, wsolAmount);
-    }
-    
-    function withdraw(uint256 amount) public {
-        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
-        _burn(msg.sender, amount);
-        
-        // Convert from 9 decimals (wSOL) back to 18 decimals (wei)
-        uint256 ethAmount = amount * 10**9;
-        payable(msg.sender).transfer(ethAmount);
-    }
     
     mapping(bytes32 => bool) public processedTxs;
     
@@ -34,14 +19,13 @@ contract WSol is ERC20, Ownable {
         processedTxs[solanaTxHash] = true;
         _mint(to, amount);
     }
-    event Burned(address indexed user, uint256 amount);
 
-    function burn( uint256 amount) public  {
+    event Burned(address indexed user, uint256 amount, string solanaAddress);
+
+    function burn( uint256 amount, string calldata solanaAddress) public  {
         _burn(msg.sender, amount);
-        emit Burned(msg.sender, amount);
+        emit Burned(msg.sender, amount, solanaAddress);
     }
     
-    receive() external payable {
-        deposit();
-    }
+   
 }

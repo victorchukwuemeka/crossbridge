@@ -134,6 +134,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
             if let Ok((user, amount)) = parse_burn_log(&log) {
                 println!("Parsed event - User: {:?}, Amount: {:?}", hex::encode(user), amount);
                 let solana_address = "GQXU6fF5e8jSJGSMSVzyJ1AMp1ozzJQqRpEwjr4QKKdR";
+                
                 let amount_u64 = amount.as_u64();
                solana_unlocker::unlock(hex::encode(user),amount_u64,solana_address.to_string()).await?;
             }else {
