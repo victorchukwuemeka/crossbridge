@@ -12,15 +12,33 @@ use solana_client::rpc_client::RpcClient;
 use solana_sdk::transaction::Transaction;
 use anchor_client::anchor_lang::Key;
 use solana_sdk::native_token::LAMPORTS_PER_SOL;
+//use crate::burn_tracker;
+//::BurnTracker;
+use crate::burn_tracker::BurnTracker;
 
-pub async fn unlock(user: String, amount: u64, solana_address: String) -> Result<(), Box<dyn Error>> {
-    println!("🔓 Unlocking {} SOL for {} (Solana address: {})", amount, user, solana_address);
+pub async fn unlock(
+    user: String, 
+    amount: u64, 
+    solana_address: String, 
+    burn_tx_hash: String
+    ) -> Result<(), Box<dyn Error>> {
+    
 
-    let amount_in_lamport = amount * LAMPORTS_PER_SOL;
+   // let amount_in_lamport = amount * LAMPORTS_PER_SOL;
     
    // let user_hash = 
-     println!("The User :{}", user);
+    // println!("The User :{}", user);
     //let user_pubkey = Pubkey::from_str(&user)?;
+    
+    let tracker = BurnTracker::new();
+
+    if !tracker.can_process(&burn_tx_hash)? {
+        return Ok(());  // Already processed, skip
+    }
+
+
+    println!("🔓 Unlocking {} SOL for {} (Solana address: {})", amount, user, solana_address);
+
     let solana_address_pubkey = match Pubkey::from_str(&solana_address) {
         Ok(user_pubkey)=>{
             println!("User Public Key :{}", user_pubkey);
@@ -31,8 +49,7 @@ pub async fn unlock(user: String, amount: u64, solana_address: String) -> Result
             return Err(e.into()); 
         }
     };
-    //println!("User Public Key : {}", user_pubkey);
-    let solana_address_pubkey = Pubkey::from_str(&solana_address)?;
+
     println!("the solana Address Pubkey :{}", solana_address_pubkey);
 
     
@@ -48,30 +65,20 @@ pub async fn unlock(user: String, amount: u64, solana_address: String) -> Result
         "https://api.devnet.solana.com".to_string(),
         CommitmentConfig::processed(),
     );
-    //println!("rpc_client {:?}", rpc_client);
-     /*let client = Client::new_with_options(
-        Cluster::Custom(
-            "http://127.0.0.1:8899".to_string(), // RPC URL
-            "ws://127.0.0.1:8900".to_string()    // WebSocket URL
-        ),
-        Rc::new(keypair),
-        CommitmentConfig::processed(),
-    );*/
     
-    let test_amount = 10_000_000_u64; 
 
     let my_instruction = system_instruction::transfer(
          &keypair.pubkey(),   
         &solana_address_pubkey,
-        test_amount,
+        amount,
     );
 
     //print!("this is the instruction:{}:", my_instruction);
-    println!("This is the Instruction {:?}:", my_instruction);
+    //println!("This is the Instruction {:?}:", my_instruction);
     // Wrap it in a transaction
     // ✅ Get the latest blockhash
     let recent_blockhash = rpc_client.get_latest_blockhash()?;
-    println!("The Recent Block Hash {}:", recent_blockhash);
+    //println!("The Recent Block Hash {}:", recent_blockhash);
 
     let tx = Transaction::new_signed_with_payer(
         &[my_instruction],

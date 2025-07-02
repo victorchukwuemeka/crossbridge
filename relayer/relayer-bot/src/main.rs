@@ -3,6 +3,7 @@ mod solana_listener;
 mod ethereum_listener;
 mod ethereum_minter;
 mod solana_unlocker;
+mod burn_tracker;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -11,7 +12,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     dotenv::dotenv().ok(); 
     tokio::try_join!(
         solana_listener::start(),
-        //ethereum_listener::start(),
+        ethereum_listener::start(),
     )?;
     
     Ok(())

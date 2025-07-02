@@ -33,7 +33,7 @@ fn keccak256(data: &[u8]) -> Hash {
 }
 
 pub fn get_custom_burn_event_signature_hash() -> Hash {
-    keccak256("Burned(address,uint256)".as_bytes())
+    keccak256("Burned(address,uint256,string)".as_bytes())
 }
 
 
@@ -75,36 +75,30 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
     let event_topic = get_custom_burn_event_signature_hash();
     println!("The topic we are Looking for in the contract: {:?}.", event_topic);
 
-    let mut last_block = match get_block_number(&client).await{
-        Ok(last_block)=>{
-            println!("We Have Our Last Block :{}.", last_block);
-             last_block.saturating_sub(1) 
-        }
-        Err(e)=>{
-            println!("We Failed To Get The Last Block: {}", e);
-            return Err(e.into()); 
-        }
-    };
-    //?.saturating_sub(1);
-    //println!("Starting from block: {}", last_block);
+    
     println!("Contract address hex: 0x{}", hex::encode(contract_address));
     
     loop {
        // let current_block = get_block_number(&client).await?;
         
        // println!("Checking blocks {} to {}", last_block + 1, current_block);
-        let temp_last_block  = 8625100;
-        let temp_current_block = 8625100;
+        //let temp_last_block  = 8625100;
+        //let temp_current_block = 8625100;
+        let temp_last_block = 8670327 - 5;
+        let temp_current_block = 8670327 + 5;
+        let current_block = get_current_block_number(&client).await?;
+        //let from_block = ; // Last 100 blocks
+        let to_block = current_block;
 
         // Fetch logs
         let logs = match get_logs_in_range(
             &client,
             contract_address,
             event_topic,
-           // last_block + 1,
-           // current_block
-           temp_last_block-10,
-           temp_current_block+10
+            temp_last_block + 1,
+            temp_current_block
+          // current_block - 100,
+          // current_block,
            
         ).await {
             Ok(logs) => {
@@ -127,16 +121,22 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
         
         // Process logs
         for log in logs {
+            
             println!("let run the log");
-            let log_data = parse_burn_log(&log);
+            let log_data = parse_burn_log(&log)?;
             println!("this is the LOG Data {:?}", log_data);
             
-            if let Ok((user, amount)) = parse_burn_log(&log) {
-                println!("Parsed event - User: {:?}, Amount: {:?}", hex::encode(user), amount);
-                let solana_address = "GQXU6fF5e8jSJGSMSVzyJ1AMp1ozzJQqRpEwjr4QKKdR";
+            if let Ok((user, amount, solana_address,tx_hash )) = parse_burn_log(&log) {
+                println!("Parsed event - User: {:?}, Amount: {:?}, and Solana Address:{}", hex::encode(user), amount, solana_address);
+                //let solana_address = "GQXU6fF5e8jSJGSMSVzyJ1AMp1ozzJQqRpEwjr4QKKdR";
                 
                 let amount_u64 = amount.as_u64();
-               solana_unlocker::unlock(hex::encode(user),amount_u64,solana_address.to_string()).await?;
+                solana_unlocker::unlock(
+                    hex::encode(user),
+                    amount_u64,
+                    solana_address.to_string(),
+                 tx_hash.to_string()
+                ).await?;
             }else {
                 println!("i did not get the User And Amount Right");
             }
@@ -158,12 +158,18 @@ async fn get_block_number(client: &HttpClient) -> Result<u64, Box<dyn Error>> {
 }
 
 
+async fn get_current_block_number(client: &HttpClient) -> Result<u64, Box<dyn Error>> {
+    let response: Value = client.request("eth_blockNumber", rpc_params![]).await?;
+    let hex_block = response.as_str().ok_or("Invalid block number response")?;
+    Ok(u64::from_str_radix(&hex_block[2..], 16)?)
+}
+
 async fn get_logs_in_range(
     client: &HttpClient,
     address: Address,
     topic: Hash,
     from_block: u64,
-    to_block: u64
+    to_block: u64,
 ) -> Result<Vec<Value>, Box<dyn Error>> {
     
 
@@ -174,15 +180,15 @@ async fn get_logs_in_range(
         "topics": [format!("0x{}", hex::encode(topic))]
     });
 
-    //println!("🔍 DEBUG - Filter being sent:");
-    //println!("   fromBlock: 0x{:x}", from_block);
-    //println!("   toBlock: 0x{:x}", to_block);
-    //println!("   address: 0x{}", hex::encode(address));
-    //println!("   topic: 0x{}", hex::encode(topic));
+    println!("🔍 DEBUG - Filter being sent:");
+    println!("   fromBlock: 0x{:x}", from_block);
+    println!("   toBlock: 0x{:x}", to_block);
+    println!("   address: 0x{}", hex::encode(address));
+    println!("   topic: 0x{}", hex::encode(topic));
     // println!("   Full param JSON: {}", serde_json::to_string_pretty(params).unwrap());
     
     let response: Value = client.request("eth_getLogs",  rpc_params![filter]).await?;
-   // println!("Response {}", response);
+    println!("Response {}", response);
     Ok(response.as_array().cloned().unwrap_or_default())
 }
 
@@ -210,31 +216,75 @@ async fn check_contract_exists(client: &HttpClient, address: &Address) -> Result
 
 
 
-fn parse_burn_log(log: &Value) -> Result<(Address, U256), Box<dyn Error>> {
+fn parse_burn_log(log: &Value) -> Result<(Address, U256, String, String), Box<dyn Error>> {
     let topics = log["topics"].as_array().ok_or("Missing topics")?;
     let data = log["data"].as_str().ok_or("Missing data")?;
     
+    let tx_hash = log["transactionHash"].as_str()
+        .ok_or("Missing transaction hash")?
+        .to_string();
+
+
     // Parse user address (topic 1)
-    let user_topic = topics[1].as_str().unwrap();
+    let user_topic = topics[1].as_str().ok_or("Missing topic")?;
     let user_bytes = hex::decode(&user_topic[26..])?;
-    let user:Address = user_bytes.try_into().map_err(|_| "Invalid address")?;
+    let user: Address = user_bytes.try_into().map_err(|_| "Invalid address")?;
 
+    let data_bytes = hex::decode(&data[2..])?;
 
-    /*let user = hex::decode(&topics[1].as_str().unwrap()[2..])?
-        .try_into()
-        .map_err(|_| "Invalid address length")?;*/
+    if data_bytes.len() < 96 {
+        return Err("Data too short".into());
+    }
+
+    // Parse amount (first 32 bytes)
+    let amount_bytes: [u8; 32] = data_bytes[0..32].try_into()?;
+    let amount = U256::from_big_endian(&amount_bytes);
+
+    // Parse string length (bytes 64-95, last 4 bytes)
+    let string_length = u32::from_be_bytes([
+        data_bytes[92], data_bytes[93], data_bytes[94], data_bytes[95]
+    ]) as usize;
+
+    // Parse solana address (starting from byte 96)
+    if data_bytes.len() < 96 + string_length {
+        return Err("Data too short for string".into());
+    }
     
-    // Parse amount (first 32 bytes of data)
-   let amount = U256::from_str_radix(&data[2..], 16)?;
-    /*let amount = hex::decode(&data[2..66])? // Skip '0x', take first 64 hex chars
-        .try_into()
-        .map_err(|_| "Invalid U256 length")?;*/
+    let solana_address = String::from_utf8(
+        data_bytes[96..96 + string_length].to_vec()
+    )?;
 
-    println!("The User is :{:?}", user);
-    println!("The amount is :{:?}", amount);
+    println!("User: {:?}", user);
+    println!("Amount: {:?}", amount);
+    println!("Solana Address: {}", solana_address);
+    println!("Transaction Hash: {}", tx_hash);
     
-    Ok((user, amount))
+    Ok((user, amount, solana_address,tx_hash))
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 fn hex_to_u64(value: &Value) -> u64 {
     u64::from_str_radix(value.as_str().unwrap().trim_start_matches("0x"), 16).unwrap_or(0)
