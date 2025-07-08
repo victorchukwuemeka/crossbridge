@@ -1,5 +1,6 @@
 use solana_sdk::signer::Signer;
 use web3::types::{H160, U256};
+use std::env;
 use std::error::Error;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -15,10 +16,11 @@ use solana_sdk::native_token::LAMPORTS_PER_SOL;
 //use crate::burn_tracker;
 //::BurnTracker;
 use crate::burn_tracker::BurnTracker;
+use solana_sdk::bs58;
 
 pub async fn unlock(
     user: String, 
-    amount: u64, 
+    amount: f64, 
     solana_address: String, 
     burn_tx_hash: String
     ) -> Result<(), Box<dyn Error>> {
@@ -38,6 +40,7 @@ pub async fn unlock(
 
 
     println!("🔓 Unlocking {} SOL for {} (Solana address: {})", amount, user, solana_address);
+    
 
     let solana_address_pubkey = match Pubkey::from_str(&solana_address) {
         Ok(user_pubkey)=>{
@@ -54,10 +57,15 @@ pub async fn unlock(
 
     
     // Load key for Solana config part
-    let key_pair = "/home/victor/.config/solana/id.json";
-    let file = File::open(key_pair)?;
-    let keypair_bytes: Vec<u8> = serde_json::from_reader(file)?;
-    let keypair = Keypair::from_bytes(&keypair_bytes)?;
+    //let key_pair = "/home/victor/.config/solana/id.json";
+    let private_key_str = env::var("DEVNET_PRIVATE_KEY")?;
+    let private_key_bytes = bs58::decode(&private_key_str).into_vec()?;
+    let keypair = Keypair::from_bytes(&private_key_bytes)?;
+    //println!("Keypair :{:?}", keypair);
+    //let file = File::open(key_pair)?;
+    //let keypair_bytes: Vec<u8> = serde_json::from_reader(file)?;
+    //let keypair = Keypair::from_bytes(&keypair_bytes)?;
+    //println!("Keypair :{:?}", keypair);
     println!("Keypair :{:?}", keypair);
 
      // Network local  net  for now
@@ -65,12 +73,16 @@ pub async fn unlock(
         "https://api.devnet.solana.com".to_string(),
         CommitmentConfig::processed(),
     );
-    
+
+
+    let amount_in_lamports = (amount * LAMPORTS_PER_SOL as f64) as u64;
+
+    println!("THE AMOUNT IN LAMPORT {}", amount_in_lamports);
 
     let my_instruction = system_instruction::transfer(
          &keypair.pubkey(),   
         &solana_address_pubkey,
-        amount,
+        amount_in_lamports,
     );
 
     //print!("this is the instruction:{}:", my_instruction);

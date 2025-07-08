@@ -51,9 +51,10 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     // 1. Configuration from environment
     let eth_devnet_rpc_url = env::var("ETH_DEVNET_RPC_URL")
         .unwrap_or("https://eth-sepolia.g.alchemy.com".into());
+    println!("the eth devnet {}", eth_devnet_rpc_url);
     let contract_addr = env::var("WSOL_CONTRACT_ADDRESS")
         .expect("WSOL_CONTRACT_ADDRESS must be set");
-    let private_key = env::var("DEVNET_PRIVATE_KEY")
+    let private_key = env::var("ETH_DEVNET_PRIVATE_KEY")
         .expect("DEVNET_PRIVATE_KEY must be set");
     
     //transport
@@ -80,7 +81,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     
 
     // 2. Get the accounts available on the node
-    //println!("Using account: {:?}", sender_address);
+    println!("Using account: {:?}", sender_address);
     
     // 3. Load contract ABI and address
     let artifact_json = include_str!("../../../smart_contracts/artifacts/contracts/wSol/WSol.sol/WSol.json");

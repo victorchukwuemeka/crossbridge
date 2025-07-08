@@ -84,18 +84,20 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
        // println!("Checking blocks {} to {}", last_block + 1, current_block);
         //let temp_last_block  = 8625100;
         //let temp_current_block = 8625100;
-        let temp_last_block = 8670327 - 5;
-        let temp_current_block = 8670327 + 5;
+        //let temp_last_block = 8699182 ;
+        //let temp_current_block = 8699182;
         let current_block = get_current_block_number(&client).await?;
+        println!("Current Block PPPPPPPPPPPPPPPPPP{}", current_block);
         //let from_block = ; // Last 100 blocks
-        let to_block = current_block;
+        let temp_last_block = current_block - 50;
+        let temp_current_block  =  current_block ;
 
         // Fetch logs
         let logs = match get_logs_in_range(
             &client,
             contract_address,
             event_topic,
-            temp_last_block + 1,
+            temp_last_block  ,
             temp_current_block
           // current_block - 100,
           // current_block,
@@ -130,10 +132,11 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
                 println!("Parsed event - User: {:?}, Amount: {:?}, and Solana Address:{}", hex::encode(user), amount, solana_address);
                 //let solana_address = "GQXU6fF5e8jSJGSMSVzyJ1AMp1ozzJQqRpEwjr4QKKdR";
                 
-                let amount_u64 = amount.as_u64();
+                //let amount_u64 = amount.as();
+                //let amount = U256::from_big_endian(&amount_bytes);
                 solana_unlocker::unlock(
                     hex::encode(user),
-                    amount_u64,
+                    amount,
                     solana_address.to_string(),
                  tx_hash.to_string()
                 ).await?;
@@ -216,7 +219,7 @@ async fn check_contract_exists(client: &HttpClient, address: &Address) -> Result
 
 
 
-fn parse_burn_log(log: &Value) -> Result<(Address, U256, String, String), Box<dyn Error>> {
+/*fn parse_burn_log(log: &Value) -> Result<(Address, U256, String, String), Box<dyn Error>> {
     let topics = log["topics"].as_array().ok_or("Missing topics")?;
     let data = log["data"].as_str().ok_or("Missing data")?;
     
@@ -260,12 +263,44 @@ fn parse_burn_log(log: &Value) -> Result<(Address, U256, String, String), Box<dy
     println!("Transaction Hash: {}", tx_hash);
     
     Ok((user, amount, solana_address,tx_hash))
+}*/
+
+
+
+
+fn parse_burn_log(log: &Value) -> Result<(Address, f64, String, String), Box<dyn Error>> {
+    let topics = log["topics"].as_array().ok_or("Missing topics")?;
+    let data = log["data"].as_str().ok_or("Missing data")?;
+    let tx_hash = log["transactionHash"].as_str()
+        .ok_or("Missing transaction hash")?
+        .to_string();
+
+    // Parse user address (topic 1) - sender of the burn
+    let user_topic = topics[1].as_str().ok_or("Missing topic")?;
+    let user_bytes = hex::decode(&user_topic[26..])?; // Strip 0x and 24 bytes of padding
+    let user: Address = user_bytes.try_into().map_err(|_| "Invalid address")?;
+
+    // Parse amount (from data field)
+    let data_bytes = hex::decode(&data[2..])?; // Remove 0x prefix
+    
+    // The amount is the first 32 bytes of data in big-endian
+    let amount_bytes: [u8; 32] = data_bytes[0..32].try_into()?;
+    let amount = U256::from_big_endian(&amount_bytes);
+
+    // Convert raw amount to 0.5 wSOL (assuming 9 decimals like Solana)
+    let decimals = 9;
+    let human_amount = amount.as_u128() as f64 / 10_u64.pow(decimals) as f64;
+    println!("Amount burned: {} wSOL", human_amount); // Should print "0.5"
+
+    // Parse Solana address (dynamic string at byte 96)
+    let string_len = u32::from_be_bytes([data_bytes[92], data_bytes[93], data_bytes[94], data_bytes[95]]) as usize;
+    if data_bytes.len() < 96 + string_len {
+        return Err("Data too short for Solana address".into());
+    }
+    let solana_address = String::from_utf8(data_bytes[96..96 + string_len].to_vec())?;
+     
+    Ok((user, human_amount, solana_address, tx_hash))
 }
-
-
-
-
-
 
 
 
