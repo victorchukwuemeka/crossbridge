@@ -1,32 +1,19 @@
 [toolchain]
-channel = "1.82.0"
-components = ["rustc", "cargo", "rustfmt"]
-anchor_version = "0.29.0"
-
+anchor_version = "0.31.1"
 
 [features]
 resolution = true
 skip-lint = false
 
 [programs.devnet]
-bridge_program = "911VdUg43JGvomS2eCqKHJcUZ6J9SCjb371w6Xst7YMD"
+bridge_program = "7N9UCyKUqac5JuEjn4inZcBFhi87FXDRy3rP1mNhTrdB"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/id.json"
 
-[source.crates-io]
-replace-with = 'default' 
-
-
-[source.default]
-registry = "https://github.com/rust-lang/crates.io-index"
-
-
-
 [scripts]
-test = "cargo test" 
-
+test = "cargo test"

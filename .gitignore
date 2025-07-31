@@ -3,3 +3,5 @@ target/
 /test-ledger/
 /ledger/
 solana/validator.log
+
+relayer/relayer-bot/.env

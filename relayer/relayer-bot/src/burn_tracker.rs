@@ -47,6 +47,7 @@ impl BurnTracker{
             println!("Burn :{} has already been processed", tx_hash);
             return Ok(false);
         }
+        
 
         self.mark_processed(tx_hash);
         Ok(true)

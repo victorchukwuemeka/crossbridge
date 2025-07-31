@@ -78,7 +78,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
 
     println!("Solana Devnet listener started...!");
     
-    let program_id = Pubkey::from_str("8aHKSiDSTpVZQBm6HZSmUJSJPxAFPjCMybuEns6Lbn5a")?;
+    let program_id = Pubkey::from_str("7N9UCyKUqac5JuEjn4inZcBFhi87FXDRy3rP1mNhTrdB")?;
     
     loop {
 

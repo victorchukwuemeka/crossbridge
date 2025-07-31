@@ -1,22 +1,26 @@
 use solana_sdk::signer::Signer;
-use web3::types::{H160, U256};
+//use web3::types::{H160, U256};
 use std::env;
 use std::error::Error;
-use std::rc::Rc;
+//use std::rc::Rc;
 use std::str::FromStr;
 use solana_sdk::commitment_config::CommitmentConfig;
 use solana_sdk::{pubkey::Pubkey, system_instruction};
-use anchor_client::{Client, Cluster};
+//use anchor_client::{Client, Cluster};
 use anchor_client::solana_sdk::signature::Keypair;
-use std::fs::File;
+
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::transaction::Transaction;
-use anchor_client::anchor_lang::Key;
+//use anchor_client::anchor_lang::Key;
 use solana_sdk::native_token::LAMPORTS_PER_SOL;
-//use crate::burn_tracker;
-//::BurnTracker;
+
 use crate::burn_tracker::BurnTracker;
 use solana_sdk::bs58;
+use solana_sdk::instruction::Instruction;
+use solana_sdk::instruction::AccountMeta;
+
+//use anchor_lang::prelude::*;
+use sha2::{Sha256, Digest};
 
 pub async fn unlock(
     user: String, 
@@ -26,79 +30,172 @@ pub async fn unlock(
     ) -> Result<(), Box<dyn Error>> {
     
 
-   // let amount_in_lamport = amount * LAMPORTS_PER_SOL;
-    
-   // let user_hash = 
-    // println!("The User :{}", user);
-    //let user_pubkey = Pubkey::from_str(&user)?;
-    
-    let tracker = BurnTracker::new();
 
-    if !tracker.can_process(&burn_tx_hash)? {
-        return Ok(());  // Already processed, skip
-    }
-
-
-    println!("🔓 Unlocking {} SOL for {} (Solana address: {})", amount, user, solana_address);
-    
-
-    let solana_address_pubkey = match Pubkey::from_str(&solana_address) {
-        Ok(user_pubkey)=>{
-            println!("User Public Key :{}", user_pubkey);
-            user_pubkey
-        }
-        Err(e)=>{
-            println!("we could not get the pubkey :{}", e);
-            return Err(e.into()); 
-        }
-    };
-
-    println!("the solana Address Pubkey :{}", solana_address_pubkey);
-
-    
-    // Load key for Solana config part
-    //let key_pair = "/home/victor/.config/solana/id.json";
-    let private_key_str = env::var("DEVNET_PRIVATE_KEY")?;
-    let private_key_bytes = bs58::decode(&private_key_str).into_vec()?;
-    let keypair = Keypair::from_bytes(&private_key_bytes)?;
-    //println!("Keypair :{:?}", keypair);
-    //let file = File::open(key_pair)?;
-    //let keypair_bytes: Vec<u8> = serde_json::from_reader(file)?;
-    //let keypair = Keypair::from_bytes(&keypair_bytes)?;
-    //println!("Keypair :{:?}", keypair);
-    println!("Keypair :{:?}", keypair);
-
-     // Network local  net  for now
+    // Network local  net  for now
     let rpc_client = RpcClient::new_with_commitment(
         "https://api.devnet.solana.com".to_string(),
         CommitmentConfig::processed(),
     );
 
 
-    let amount_in_lamports = (amount * LAMPORTS_PER_SOL as f64) as u64;
+    //check if already processed
+    let tracker = BurnTracker::new();
+    if !tracker.can_process(&burn_tx_hash)? {
+        return Ok(());  
+    }
 
-    println!("THE AMOUNT IN LAMPORT {}", amount_in_lamports);
+    // loading my keypair from my private key in the env
+    let private_key_str = env::var("DEVNET_PRIVATE_KEY")?;
+    let private_key_bytes = bs58::decode(&private_key_str).into_vec()?;
+    let complete_keypair = Keypair::from_bytes(&private_key_bytes)?;
 
-    let my_instruction = system_instruction::transfer(
-         &keypair.pubkey(),   
-        &solana_address_pubkey,
-        amount_in_lamports,
-    );
+    let my_relayer_pubkey = complete_keypair.pubkey();
+     
+    
 
-    //print!("this is the instruction:{}:", my_instruction);
-    //println!("This is the Instruction {:?}:", my_instruction);
+    let user_pubkey = Pubkey::from_str(&solana_address)?;
+    //let user_pubkey_base58 = user_pubkey.to_string();
+    //let try_this_type = solana_address.to_string();
+
+
+   //first get the program id for solana program we want to talk to
+   let program_id = Pubkey::from_str("7N9UCyKUqac5JuEjn4inZcBFhi87FXDRy3rP1mNhTrdB")?;
+
+   //pda of the  bridge and user accounts i used 
+   let (bridge_pda, bridge_bump) = Pubkey::find_program_address(
+    &[b"bridge_vault_v1"],
+     &program_id);
+   let (user_balance_pda,user_balance_bump) = Pubkey::find_program_address(
+    &[b"user_balance", user_pubkey.as_ref()],
+    &program_id
+   );
+
+
+   //discriminator used for selecting the function we are talking to 
+   //let discriminator = anchor_lang::solana_program::hash::hash(b"global:un_lock_sol");
+   let discriminator = calculate_anchor_discriminator("un_lock_sol");
+   
+
+
+
+   let mut data = Vec::new();
+   data.extend_from_slice(&discriminator);
+   //data.extend_from_slice(&discriminator.bytes()[..8]);
+   let amount_lamport = (amount * LAMPORTS_PER_SOL as f64) as u64;
+   data.extend_from_slice(&amount_lamport.to_le_bytes());
+   //data.extend_from_slice(&((amount * 1e9) as u64).to_le_bytes());
+   
+   //let my_relayer_pubkey = Pubkey::from_str("4dmQAcJe9Ksh4FtpMMfHajP4ssBhrbNrPrGc3v5jFFSA")?;
+
+   let my_instruction = Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(bridge_pda, false),
+            AccountMeta::new(user_balance_pda, false),
+            AccountMeta::new_readonly(my_relayer_pubkey, true),
+            AccountMeta::new(user_pubkey, false), // No signature needed!
+            AccountMeta::new_readonly(solana_sdk::system_program::id(), false),
+        ],
+        data,
+    };
+
+
+    // Check if your program exists
+match rpc_client.get_account(&program_id) {
+    Ok(account) => {
+        println!("✅ Program exists: {} (executable: {})", program_id, account.executable);
+        if !account.executable {
+            println!("❌ WARNING: Program account exists but is not executable!");
+        }
+    },
+    Err(e) => {
+        println!("❌ Program NOT found: {} - Error: {:?}", program_id, e);
+    }
+}
+   
+    println!("Checking if user has locked SOL...");
+
+// Try to fetch the user balance account
+match rpc_client.get_account_data(&user_balance_pda) {
+    Ok(data) => {
+        println!("✅ User balance PDA exists with {} bytes of data", data.len());
+        // You could deserialize this to see the locked amount
+    },
+    Err(e) => {
+        println!("❌ User balance PDA doesn't exist: {:?}", e);
+        println!("User {} needs to lock SOL first before unlocking", solana_address);
+        return Ok(()); // Exit early
+    }
+}
+
+
+
+// Add this debugging code before creating your transaction:
+println!("Checking all account existence...");
+
+// Check bridge PDA
+match rpc_client.get_account(&bridge_pda) {
+    Ok(account) => println!("✅ Bridge PDA exists: {} (balance: {} lamports)", bridge_pda, account.lamports),
+    Err(_) => println!("❌ Bridge PDA NOT found: {}", bridge_pda),
+}
+
+// Check user balance PDA (we know this exists)
+match rpc_client.get_account(&user_balance_pda) {
+    Ok(account) => println!("✅ User balance PDA exists: {} (balance: {} lamports)", user_balance_pda, account.lamports),
+    Err(_) => println!("❌ User balance PDA NOT found: {}", user_balance_pda),
+}
+
+// Check user account
+match rpc_client.get_account(&user_pubkey) {
+    Ok(account) => println!("✅ User account exists: {} (balance: {} lamports)", user_pubkey, account.lamports),
+    Err(_) => println!("❌ User account NOT found: {}", user_pubkey),
+}
+
+// Check relayer account
+match rpc_client.get_account(&complete_keypair.pubkey()) {
+    Ok(account) => println!("✅ Relayer account exists: {} (balance: {} lamports)", complete_keypair.pubkey(), account.lamports),
+    Err(_) => println!("❌ Relayer account NOT found: {}", complete_keypair.pubkey()),
+}
+
+println!("Solana Address : {}", solana_address);
+println!("Pubkey of the Strcut: {}", user_pubkey);
+println!("Exstract the bytes: {:?}", user_pubkey.as_ref());
+println!("Bridge PDA: {}", bridge_pda);
+println!("User PDA: {}", user_balance_pda);  
+println!("User pubkey: {}", user_pubkey);
+println!("Relayer pubkey: {}", complete_keypair.pubkey());
+
+    println!("🔓 Unlocking {} SOL for {} (Solana address: {})", amount, user, solana_address);
+    
+
+    
+    // Load key for Solana config part
+    //let private_key_str = env::var("DEVNET_PRIVATE_KEY")?;
+    //let private_key_bytes = bs58::decode(&private_key_str).into_vec()?;
+    //let keypair = Keypair::from_bytes(&private_key_bytes)?;
+    //println!("Keypair :{:?}", keypair);
+
+     
+
+
+    //let amount_in_lamports = (amount * LAMPORTS_PER_SOL as f64) as u64;
+
+    //println!("THE AMOUNT IN LAMPORT {}", amount_in_lamports);
+
+    
+
     // Wrap it in a transaction
     // ✅ Get the latest blockhash
     let recent_blockhash = rpc_client.get_latest_blockhash()?;
-    //println!("The Recent Block Hash {}:", recent_blockhash);
+    println!("The Recent Block Hash {}:", recent_blockhash);
 
     let tx = Transaction::new_signed_with_payer(
         &[my_instruction],
-        Some(&keypair.pubkey()),
-        &[&keypair],
+        Some(&complete_keypair.pubkey()),
+        &[&complete_keypair],
         recent_blockhash,
     );
-    println!("TRANSACTION {:?}", tx);
+    //println!("TRANSACTION {:?}", tx);
 
 
     // Send the transaction
@@ -106,4 +203,18 @@ pub async fn unlock(
     println!("✅ Unlock successful! Tx Signature: {}", signature);
     
     Ok(())
+}
+
+fn calculate_anchor_discriminator(instruction_name : &str)->[u8; 8]{
+    let namespace = "global";
+    let full_name = format!("{}:{}",namespace, instruction_name );
+
+    let mut hasher = Sha256::new();
+    hasher.update(full_name.as_bytes());
+    let hash = hasher.finalize();
+
+    let mut discriminator = [0u8; 8];
+    discriminator.copy_from_slice(&hash[..8]);
+    discriminator
+
 }
