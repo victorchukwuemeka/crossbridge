@@ -29,8 +29,26 @@ fn get_processed_signatures() -> &'static mut HashSet<String> {
 
 fn load_processed_signature()->Result<HashSet<String>, Box<dyn Error>>{
     if std::path::Path::new(PROCESSED_FILE).exists() {
-        let data = std::fs::read_to_string(PROCESSED_FILE)?;
-        let signatures: HashSet<String> = serde_json::from_str(&data)?;
+        let data = match std::fs::read_to_string(PROCESSED_FILE){
+            Ok(data) => {
+                println!("[DATA FROM THE PROCESSED FILE]: {}", data);
+                data
+            },
+            Err(e)=> {
+                println!("[DATA NOT GOTTEN] : {}", e);
+                return Ok(HashSet::new());
+            }
+        };
+        let signatures: HashSet<String> = match serde_json::from_str(&data){
+            Ok(sign )=> {
+                println!("[SIGN INFO OF JSON]:{:?}", sign);
+                sign
+            }
+            Err(e)=> {
+                println!("[DATA IN JSON FORM FAILED]: {}",e);
+                return Ok(HashSet::new());
+            }
+        };
         println!("📁 Loaded {} processed signatures from file", signatures.len());
         Ok(signatures)
     }else {
@@ -41,8 +59,28 @@ fn load_processed_signature()->Result<HashSet<String>, Box<dyn Error>>{
 
 fn save_processed_signatures()->Result<(), Box<dyn Error>>{
     let signatures = get_processed_signatures();
-    let data = serde_json::to_string(signatures)?;
-    std::fs::write(PROCESSED_FILE, data)?;
+    let data = match serde_json::to_string(signatures){
+        Ok(data) => {
+            println!("[DATA GOTTEN]:{:?}",data);
+            data
+        },
+
+        Err(e)=>{
+            println!("[DATA LOST] : {}", e);
+            return Ok(());
+        }
+    };
+    match std::fs::write(PROCESSED_FILE, data){
+        Ok(file)=> {
+            println!("[FILE WITH DATA]: {:?}", file);
+            file
+        }
+        Err(e)=>{
+            println!("No Data Processed {}", e);
+            return Ok(());
+        }
+    };
+
     println!("💾 Saved {} processed signatures to file", signatures.len());
     Ok(())
 }
@@ -78,10 +116,18 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
 
     println!("Solana Devnet listener started...!");
     
-    let program_id = Pubkey::from_str("7N9UCyKUqac5JuEjn4inZcBFhi87FXDRy3rP1mNhTrdB")?;
+    let program_id = match Pubkey::from_str("7N9UCyKUqac5JuEjn4inZcBFhi87FXDRy3rP1mNhTrdB"){
+        Ok(program )=>{
+            println!("[PROGRAM ID] : {}", program);
+            program
+        }
+        Err(e)=>{
+            println!("Could not find  program id {}",e);
+            return Ok(());
+        }
+    };
     
     loop {
-
 
         // Get recent transactions for the program
         let signatures = match  client.get_signatures_for_address(&program_id){
@@ -111,7 +157,16 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
                 continue;
             }
 
-            let signature = solana_sdk::signature::Signature::from_str(&sig_info.signature)?;
+            let signature = match solana_sdk::signature::Signature::from_str(&sig_info.signature){
+                Ok(sign) => {
+                    println!("{} :[SIGNATURE GOTTEN]", sign);
+                    sign
+                },
+                Err(e)=>{
+                    println!("signature error:{}",e);
+                    return Ok(());
+                }
+            };
             
             // Get transaction details
             if let Ok(transaction) = client.get_transaction(&signature, UiTransactionEncoding::Json) {
@@ -122,7 +177,16 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
                         OptionSerializer::None => continue,
                         OptionSerializer::Skip => continue,
                     };
-                    handle_logs(&sig_info.signature, logs).await?;
+                    match handle_logs(&sig_info.signature, logs).await{
+                        Ok(handle) =>{
+                            println!("[HANDLE LOGS]{:?}",handle);
+                            handle
+                        }
+                        Err(e)=>{
+                            println!("handle logs error: {}", e);
+                            return Ok(());
+                        }
+                    };
                 }
             }
         }
@@ -185,24 +249,35 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
 
                             
                             // Mint tokens on Ethereum side
-                           crate::ethereum_minter::mint_wsol(&user.to_string(), amount, &eth_address, &signature.to_string()).await?;
+                           match crate::ethereum_minter::mint_wsol(
+                            &user.to_string(), 
+                            amount,
+                            &eth_address,
+                            &signature.to_string()).await{
+                                Ok(mint_ether) => {
+                                    println!("[CALLING THE MINT ETHER MODEL]: {:?}", mint_ether);
+                                    mint_ether
+                                }
+                                Err(e)=>{
+                                    println!("[THE MINT ETHER CALL FAILED]: {}",e);
+                                    return Ok(());
+                                }
+                            };
 
                             // Mark as processed only after successful minting
                            get_processed_signatures().insert(signature.to_string());
-                           save_processed_signatures()?;
+                           match save_processed_signatures(){
+                            Ok(saved)=>{
+                                println!("[SAVED PROCESSED SIGNATURE]: {:?}", saved);
+                                saved
+                            }
+                            Err(e)=>{
+                                println!("failed to save processed signature");
+                                return Ok(());
+                            }
+                           };
                            println!("✅ Transaction processed and marked: {}", signature);
-                           
-                          /*  match crate::ethereum_minter::mint_wsol(&user.to_string(), amount, &eth_address, &signature.to_string()) {
-                               Ok(_) =>{
-                                //Mark as processed only after successful minting
-                                get_processed_signatures().insert(signature.to_string());
-                                println!("✅ Transaction processed and marked: {}", signature);
-                               }
-                               Err(e)=>{
-                                println!("❌ Minting failed, will retry: {:?}", e);
-                                return Err(e);
-                               }
-                           }*/
+
                         },
                         Err(_) => println!("⚠️ Found program data, but not a LockEvent"),
                     }

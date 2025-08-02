@@ -34,11 +34,29 @@ impl BurnTracker{
     }
 
     pub fn mark_processed(&self, tx_hash:&str)->Result<bool, Box<dyn Error>>{
-        let mut file = OpenOptions::new()
+        let mut file = match OpenOptions::new()
             .create(true)
             .append(true)
-            .open(&self.file_path)?;
-        writeln!(file, "{}", tx_hash)?;
+            .open(&self.file_path){
+                Ok(file)=>{
+                    println!("file processed");
+                    file
+                }
+                Err(e)=>{
+                    println!("file not processed");
+                    return Err(e.into())
+                }
+            };
+        match writeln!(file, "{}", tx_hash){
+            Ok(write)=>{
+                println!("writing the transaction hash into the file");
+                write
+            }
+            Err(e)=>{
+                println!("could not write into the file");
+                return Err(e.into());
+            }
+        };
         Ok(true)
     }
 

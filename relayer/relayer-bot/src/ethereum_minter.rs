@@ -9,7 +9,7 @@ use std::env;
 use secp256k1::{Secp256k1, SecretKey};
 use sha3::{Digest, Keccak256}; 
 use web3::signing::SecretKeyRef;
-use solana_sdk::bs58;
+use solana_sdk::{bs58, transaction};
 
 
 
@@ -22,14 +22,32 @@ pub fn string_to_ethereum_address(eth_address: &str) -> Result<H160, Box<dyn std
     };
     
     // Parse the hex string to H160
-    let address = H160::from_str(&format!("0x{}", cleaned_address))?;
+    let address = match H160::from_str(&format!("0x{}", cleaned_address)){
+        Ok(address)=>{
+            println!("[address in hex ]: {}", address);
+            address
+        },
+        Err(e)=>{
+            println!("[error in hex ]:{}",e);
+            return Err(e.into());
+        }
+    };
     
     Ok(address)
 }
 
 pub fn solana_signature_to_bytes32(signature: &str) -> Result<[u8; 32], Box<dyn std::error::Error>> {
     // Decode base58 signature
-    let sig_bytes = bs58::decode(signature).into_vec()?;
+    let sig_bytes = match  bs58::decode(signature).into_vec(){
+        Ok(decode)=>{
+            println!("[decoding signature worked]:{:?}", decode);
+            decode
+        }
+        Err(e)=>{
+            println!("[failed to decode the signature]:{}",e);
+            return Err(e.into());
+        }
+    };
     
     // Hash it to get 32 bytes
     let hash = Keccak256::digest(&sig_bytes);
@@ -58,7 +76,16 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
         .expect("DEVNET_PRIVATE_KEY must be set");
     
     //transport
-    let transport = Http::new(&eth_devnet_rpc_url)?;
+    let transport = match Http::new(&eth_devnet_rpc_url){
+        Ok(protocol) => {
+            println!("[protocol connection worked] : {:?}", protocol);
+            protocol
+        }
+        Err(e)=>{
+            println!("protocol connection error {}", e);
+            return Ok(());
+        }
+    };
     let web3 = Web3::new(&transport);
 
 
@@ -69,8 +96,26 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     } else {
         &private_key
     };
-    let private_key_bytes = decode(private_key_clean)?;
-    let secret_key = SecretKey::from_slice(&private_key_bytes)?;
+    let private_key_bytes = match decode(private_key_clean){
+        Ok(private) =>{
+            println!("private key in bytes: {:?}", private);
+            private
+        }
+        Err(e)=>{
+            println!("error in private key hex {}",e);
+            return Ok(())
+        }
+    };
+    let secret_key = match SecretKey::from_slice(&private_key_bytes){
+        Ok(key)=>{
+            println!("secretkeyin bytes {:?}", key);
+            key
+        }
+        Err(e)=>{
+            println!("error in getting the secretkey in bytes 32 {}",e);
+            return Ok(());
+        }
+    };
 
     
     // 4. Derive Ethereum address
@@ -85,19 +130,75 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     
     // 3. Load contract ABI and address
     let artifact_json = include_str!("../../../smart_contracts/artifacts/contracts/wSol/WSol.sol/WSol.json");
-    let artifact: serde_json::Value = serde_json::from_str(artifact_json)?;
-    let abi = artifact.get("abi").ok_or("ABI not found in artifact")?;
-    let abi_bytes = serde_json::to_vec(abi)?;
+    let artifact: serde_json::Value = match serde_json::from_str(artifact_json){
+        Ok(abi_in_json)=>{
+            println!("[abi is loaded correctly in json]: {}", abi_in_json);
+            abi_in_json
+        },
+        Err(e)=> {
+            println!("abi in json {} did not load well ", e);
+            return Ok(())
+        }
+    };
+    let abi = match artifact.get("abi"){
+        Some(abi_value)=>{
+            println!("value of the abi is {}", abi_value);
+            abi_value
+        }
+        None => {
+            println!("value of abi not found");
+            return Err("abi value not found ".into());
+        }
+    };
+    
+    let abi_bytes:Vec<u8> = match serde_json::to_vec(abi){
+        Ok(vec_abi)=>{
+            println!("bytes  from json using vec {:?}", vec_abi);
+            vec_abi
+        }
+        Err(e)=>{
+            println!("error when turing the abi in json to vec");
+            return Err(e.into());
+        }
+    };
    // println!("checking ABI {:?} bytes", abi_bytes);
 
     
-    let contract_address: Address = contract_addr.parse()?;
-    let contract = Contract::from_json(web3.eth(), contract_address, &abi_bytes)?;
+    let contract_address: Address = match contract_addr.parse(){
+        Ok(wsol_contract)=>{
+            println!("wrapp sol address {} exist", wsol_contract);
+            wsol_contract
+        }
+        Err(e)=>{
+            println!("contract address not found ");
+            return Err(e.into())
+        }
+    };
+
+    let contract = match Contract::from_json(web3.eth(), contract_address, &abi_bytes){
+        Ok(contract)=>{
+            println!("the full wsol contract {:?}",contract);
+            contract
+        }
+        Err(e)=>{
+            println!("error on the contract");
+            return Err(e.into());
+        }
+    };
 
     //println!("Showing the Contract {:?}", contract);
 
 
-    let etheruem_address = string_to_ethereum_address(&eth_address)?;
+    let etheruem_address = match string_to_ethereum_address(&eth_address){
+        Ok(eth_address_type)=>{
+            println!("getting the eth address {} ,from the string type", eth_address_type);
+            eth_address_type
+        }
+        Err(e)=>{
+            println!("failed to convert the eth address fro string format to eth address default format");
+            return Err(e.into());
+        }
+    };
 
 
     // 4. Prepare transaction parameters
@@ -110,10 +211,28 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
 
     // 7. Get nonce for the sender
     //let nonce = web3.eth().transaction_count(sender_address, None).await?;
-    let nonce = web3.eth().transaction_count(sender_address, Some(web3::types::BlockNumber::Pending)).await?;
+    let nonce = match web3.eth().transaction_count(sender_address, Some(web3::types::BlockNumber::Pending)).await{
+        Ok(transaction_count)=>{
+            println!("nonce was really created so a transaction has been counted ");
+            transaction_count
+        }
+        Err(e) =>{
+            println!("failed to count a transaction and nonce not created ");
+            return Err(e.into())
+        }
+    };
     
-      // 8. Get current gas price
-    let gas_price = web3.eth().gas_price().await?;
+    // 8. Get current gas price
+    let gas_price = match web3.eth().gas_price().await{
+        Ok(price)=>{
+            println!("realtime gass {}", price);
+            price
+        }
+        Err(e)=>{
+            println!("failed to get real time gass price");
+            return Err(e.into());
+        }
+    };
 
 
     // 5. Create transaction options
@@ -125,7 +244,16 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     };
 
      // Convert signature to bytes32 for the contract
-    let solana_tx_hash = solana_signature_to_bytes32(solana_tx_signature)?;
+    let solana_tx_hash = match solana_signature_to_bytes32(solana_tx_signature){
+        Ok(hash )=>{
+            println!("hash solana transaction");
+            hash
+        }
+        Err(e)=>{
+            println!("signature was not hashed");
+            return Err(e.into());
+        }
+    };
     let solana_tx_hash_h256 = H256::from_slice(&solana_tx_hash);
 
 
@@ -136,9 +264,19 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     
     // 6. Call the mint function using the account from the node
     // We'll pass the from address directly to the call method
-    let tx_hash = contract
+    let tx_hash = match contract
         .signed_call("mint", (to_address, scaled_amount, solana_tx_hash_h256), options,secret_key_ref)
-       .await?;
+        .await{
+            Ok(call )=>{
+                println!("calling the  mint  successful");
+                call
+            }
+
+            Err(e) =>{
+                println!("failed to call the mint ");
+                return Err(e.into());
+            }
+        };
     
     println!("Mint transaction hash: {:?}", tx_hash);
     Ok(())
