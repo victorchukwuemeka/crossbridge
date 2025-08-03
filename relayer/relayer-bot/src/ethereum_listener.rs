@@ -1,16 +1,13 @@
+use std::io::Bytes;
 use std::time;
 use std::error::Error;
 use jsonrpsee::http_client::{HttpClientBuilder, HttpClient};
-//use jsonrpsee::http_client::HttpClientBuilder;
 use jsonrpsee::core::client::ClientT;
 use jsonrpsee::types::Params;
 use serde_json::{json, Value};
 use web3::types::U64;
 use std::env;
 use hex; // For hex decoding
-//use jsonrpsee::core::client::params::RpcParams;
-//use jsonrpsee::types::params::ParamsSer;
-//use jsonrpsee::types::Params;
 use jsonrpsee::rpc_params;
 use crate::solana_unlocker;
 
@@ -59,14 +56,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
 
     println!("Client builder : {:?}", client);
     
-    // Parse contract address and validate if is valide 
-    /*let contract_addresss:Address  = hex::decode(
-        env::var("WSOL_CONTRACT_ADDRESS")?
-        .trim_start_matches("0x")
-    )?
-    .try_into()
-    .map_err(|_| "Invalid address length")?;*/
-    
+    // Parse contract address and validate if is valide     
     let env_addr = match env::var("WSOL_CONTRACT_ADDRESS"){
         Ok(addr)  => addr,
         Err(e) => return Err(e.into())
@@ -177,16 +167,6 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
 }
 
 
-/*async fn get_block_number(client: &HttpClient) -> Result<u64, Box<dyn Error>> {
-    let response: Value = client.request("eth_blockNumber", Vec::<()>::new()).await?;
-    let hex_string = response.as_str().ok_or("Response is not a string")?;
-    let hex_without_prefix = hex_string.trim_start_matches("0x");
-    let block_number = u64::from_str_radix(hex_without_prefix, 16)?;
-
-    Ok(block_number)
-}*/
-
-
 async fn get_current_block_number(client: &HttpClient) -> Result<u64, Box<dyn Error>> {
     let response: Value = match client.request("eth_blockNumber", rpc_params![]).await{
         Ok(request) => request,
@@ -237,77 +217,6 @@ async fn get_logs_in_range(
 }
 
 
-/*async fn check_contract_exists(client: &HttpClient, address: &Address) -> Result<(), Box<dyn Error>> {
-    let address_hex = format!("0x{}", hex::encode(address));
-    println!("🔍 Checking if contract exists at: {}", address_hex);
-    
-    // Get contract code
-    let code_response: Value = client.request("eth_getCode", vec![
-        json!(address_hex),
-        json!("latest")
-    ]).await?;
-    
-    if let Some(code) = code_response.as_str() {
-        if code == "0x" || code.is_empty() {
-            println!("❌ No contract found at address {}", address_hex);
-        } else {
-            println!("✅ Contract exists! Code length: {}", code.len());
-        }
-    }
-    
-    Ok(())
-}*/
-
-
-
-/*fn parse_burn_log(log: &Value) -> Result<(Address, U256, String, String), Box<dyn Error>> {
-    let topics = log["topics"].as_array().ok_or("Missing topics")?;
-    let data = log["data"].as_str().ok_or("Missing data")?;
-    
-    let tx_hash = log["transactionHash"].as_str()
-        .ok_or("Missing transaction hash")?
-        .to_string();
-
-
-    // Parse user address (topic 1)
-    let user_topic = topics[1].as_str().ok_or("Missing topic")?;
-    let user_bytes = hex::decode(&user_topic[26..])?;
-    let user: Address = user_bytes.try_into().map_err(|_| "Invalid address")?;
-
-    let data_bytes = hex::decode(&data[2..])?;
-
-    if data_bytes.len() < 96 {
-        return Err("Data too short".into());
-    }
-
-    // Parse amount (first 32 bytes)
-    let amount_bytes: [u8; 32] = data_bytes[0..32].try_into()?;
-    let amount = U256::from_big_endian(&amount_bytes);
-
-    // Parse string length (bytes 64-95, last 4 bytes)
-    let string_length = u32::from_be_bytes([
-        data_bytes[92], data_bytes[93], data_bytes[94], data_bytes[95]
-    ]) as usize;
-
-    // Parse solana address (starting from byte 96)
-    if data_bytes.len() < 96 + string_length {
-        return Err("Data too short for string".into());
-    }
-    
-    let solana_address = String::from_utf8(
-        data_bytes[96..96 + string_length].to_vec()
-    )?;
-
-    println!("User: {:?}", user);
-    println!("Amount: {:?}", amount);
-    println!("Solana Address: {}", solana_address);
-    println!("Transaction Hash: {}", tx_hash);
-    
-    Ok((user, amount, solana_address,tx_hash))
-}*/
-
-
-
 fn parse_burn_log(log: &Value) -> Result<(Address, f64, String, String), Box<dyn Error>> {
     let topics = match log["topics"].as_array(){
         Some(topics_log ) => topics_log,
@@ -321,15 +230,7 @@ fn parse_burn_log(log: &Value) -> Result<(Address, f64, String, String), Box<dyn
             return Err("Invalid data".into())
         }
     };
-   /*let tx_hash = match log["transactionHash"]
-        .as_str()
-        .or
-        .to_string(){
-            Some(txhash) => txhash,
-            None => {
-                return Err("Invalide txhash".into())
-            }
-        };*/
+   
     let tx_hash = match log["transactionHash"].as_str() {
         Some(txhash) => {
             println!("✅ Found transaction hash");
@@ -347,14 +248,34 @@ fn parse_burn_log(log: &Value) -> Result<(Address, f64, String, String), Box<dyn
         None => return Err("Invalid topic".into())
     };
     
-    let user_bytes = hex::decode(&user_topic[26..])?; // Strip 0x and 24 bytes of padding
-    let user: Address = user_bytes.try_into().map_err(|_| "Invalid address")?;
+    // Strip 0x and 24 bytes of padding
+    let user_bytes = match hex::decode(&user_topic[26..]){
+        Ok(decode)=>decode,
+        Err(e)=> return Err(e.into())
+    }; 
 
-    // Parse amount (from data field)
-    let data_bytes = hex::decode(&data[2..])?; // Remove 0x prefix
+    let user: Address = match user_bytes.try_into(){
+        Ok(address)=> address,
+        Err(_) => return Err("Invalid Address".into())
+    };
+    
+    let data_bytes = match hex::decode(&data[2..]){
+        Ok(bytes) => bytes,
+        Err(e) => return Err(e.into())
+    }; // Remove 0x prefix
     
     // The amount is the first 32 bytes of data in big-endian
-    let amount_bytes: [u8; 32] = data_bytes[0..32].try_into()?;
+    let amount_bytes = match <[u8; 32]>::try_from(&data_bytes[0..32]) {
+        Ok(bytes) => {
+            println!(" Extracted amount bytes");
+            bytes
+        }
+        Err(_) => {
+            println!(" Failed to extract amount bytes");
+            return Err("Invalid amount bytes".into());
+        }
+    };
+
     let amount = U256::from_big_endian(&amount_bytes);
 
     // Convert raw amount to 0.5 wSOL (assuming 9 decimals like Solana)
@@ -367,16 +288,12 @@ fn parse_burn_log(log: &Value) -> Result<(Address, f64, String, String), Box<dyn
     if data_bytes.len() < 96 + string_len {
         return Err("Data too short for Solana address".into());
     }
-    let solana_address = String::from_utf8(data_bytes[96..96 + string_len].to_vec())?;
+    let solana_address = match String::from_utf8(data_bytes[96..96 + string_len].to_vec()){
+        Ok(addr) => addr,
+        Err(e)=> return Err(e.into()),
+    };
      
     Ok((user, human_amount, solana_address, tx_hash))
 }
 
 
-/*fn hex_to_u64(value: &Value) -> u64 {
-    u64::from_str_radix(value.as_str().unwrap().trim_start_matches("0x"), 16).unwrap_or(0)
-}
-
-fn bytes_to_u256(bytes: &[u8; 32]) -> u128 {
-    bytes.iter().fold(0u128, |acc, &byte| (acc << 8) | byte as u128)
-}*/
