@@ -28,7 +28,7 @@ pub mod bridge_program {
         instructions::lock_sol::handler(ctx, amount, eth_address)
     }
 
-     pub fn un_lock_sol(ctx: Context<UnLockSol>, amount: u64) -> Result<()> {
+    pub fn un_lock_sol(ctx: Context<UnLockSol>, amount: u64) -> Result<()> {
         instructions::unlock_sol::handler(ctx, amount)
     }
 
@@ -40,4 +40,7 @@ pub mod bridge_program {
         instructions::get_user_balance::handler(ctx)
     }
     
+    pub fn collect_fees(ctx: Context<CollectFees>) ->Result<()>{
+        instructions::collect_fees::handler(ctx)
+    }
 }
