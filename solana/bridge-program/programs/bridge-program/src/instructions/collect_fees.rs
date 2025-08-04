@@ -10,7 +10,7 @@ const ADMIN_PUBLICKEY:Pubkey = pubkey!("4dmQAcJe9Ksh4FtpMMfHajP4ssBhrbNrPrGc3v5j
 pub struct CollectFees<'info>{
     #[account(
         mut,
-        seeds = [b"bridge_vault_v1"],
+        seeds = [b"bridge_vault_v2"],
         bump = bridge_account.bump
     )]
     pub bridge_account : Account<'info, BridgeAccount>,

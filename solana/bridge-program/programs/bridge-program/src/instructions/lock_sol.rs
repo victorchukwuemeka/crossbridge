@@ -5,7 +5,7 @@ use crate::{records::{bridge_accounts::BridgeAccount, user_balance::UserBalance}
 pub struct LockSol<'info> {
     #[account(
         mut,
-        seeds = [b"bridge_vault_v1"],
+        seeds = [b"bridge_vault_v2"],
         bump = bridge_account.bump
     )]
     pub bridge_account: Account<'info, BridgeAccount>,

@@ -8,8 +8,8 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = user,
-        space = 8 + 8 + 1 + 32, // discriminator + u64 + bump
-        seeds = [b"bridge_vault_v1"],
+        space = 8 + 8 + 1 + 32 + 8, // discriminator + total + bump + relayer + fees,
+        seeds = [b"bridge_vault_v2"],
         bump
     )]
     pub bridge_account: Account<'info, BridgeAccount>,
