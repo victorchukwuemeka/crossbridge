@@ -11,6 +11,7 @@ pub struct LockEvent {
     pub user: Pubkey,
     pub eth_address: String,
     pub amount: u64,
+    pub fees: u64,
     pub timestamp: i64,
 }
 
@@ -118,7 +119,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
     
     let program_id = match Pubkey::from_str("7N9UCyKUqac5JuEjn4inZcBFhi87FXDRy3rP1mNhTrdB"){
         Ok(program )=>{
-            println!("[PROGRAM ID] : {}", program);
+            //println!("[PROGRAM ID] : {}", program);
             program
         }
         Err(e)=>{
@@ -132,7 +133,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
         // Get recent transactions for the program
         let signatures = match  client.get_signatures_for_address(&program_id){
             Ok(sigs) => {
-                println!("✅ Found {} signatures", sigs.len());
+               // println!("✅ Found {} signatures", sigs.len());
                 sigs
             }
             Err(e) => {
@@ -238,6 +239,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
                              println!("   User: {}", event.user);
                              println!("  Eth_Address:{}", event.eth_address);
                              println!("   Amount: {}", event.amount);
+                             println!(" fees: {}", event.fees);
                              println!("   Timestamp: {} ({})", event.timestamp, 
                                 chrono::DateTime::from_timestamp(event.timestamp, 0)
                                 .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
@@ -268,7 +270,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
                            get_processed_signatures().insert(signature.to_string());
                            match save_processed_signatures(){
                             Ok(saved)=>{
-                                println!("[SAVED PROCESSED SIGNATURE]: {:?}", saved);
+                                //println!("[SAVED PROCESSED SIGNATURE]: {:?}", saved);
                                 saved
                             }
                             Err(e)=>{

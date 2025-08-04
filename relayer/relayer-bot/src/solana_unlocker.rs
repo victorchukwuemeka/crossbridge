@@ -85,11 +85,7 @@ pub async fn unlock(
         }
     };
 
-
-
     let my_relayer_pubkey = complete_keypair.pubkey();
-     
-    
 
     let user_pubkey = match Pubkey::from_str(&solana_address){
         Ok(user)=>{
@@ -118,7 +114,7 @@ pub async fn unlock(
 
    //pda of the  bridge and user accounts i used 
    let (bridge_pda, bridge_bump) = Pubkey::find_program_address(
-    &[b"bridge_vault_v1"],
+    &[b"bridge_vault_v2"],
      &program_id);
    let (user_balance_pda,user_balance_bump) = Pubkey::find_program_address(
     &[b"user_balance", user_pubkey.as_ref()],
