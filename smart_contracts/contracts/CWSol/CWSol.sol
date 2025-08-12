@@ -3,8 +3,9 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract WSol is ERC20, Ownable {
-    constructor(address initialOwner) ERC20("Wrapped SOL", "wSOL") Ownable(initialOwner) {}
+//CWSol  Crossbridge wrapped sol .
+contract CWSol is ERC20, Ownable {
+    constructor(address initialOwner) ERC20("Crossbridge Wrapped SOL", "CWSol") Ownable(initialOwner) {}
     
     // Override decimals to match SOL (9 decimals instead of default 18)
     function decimals() public pure override returns (uint8) {

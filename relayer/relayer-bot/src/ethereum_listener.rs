@@ -57,7 +57,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
     println!("Client builder : {:?}", client);
     
     // Parse contract address and validate if is valide     
-    let env_addr = match env::var("WSOL_CONTRACT_ADDRESS"){
+    let env_addr = match env::var("CWSOL_CONTRACT_ADDRESS"){
         Ok(addr)  => addr,
         Err(e) => return Err(e.into())
     };

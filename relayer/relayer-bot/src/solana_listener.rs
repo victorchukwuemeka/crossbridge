@@ -32,7 +32,7 @@ fn load_processed_signature()->Result<HashSet<String>, Box<dyn Error>>{
     if std::path::Path::new(PROCESSED_FILE).exists() {
         let data = match std::fs::read_to_string(PROCESSED_FILE){
             Ok(data) => {
-                println!("[DATA FROM THE PROCESSED FILE]: {}", data);
+                //println!("[DATA FROM THE PROCESSED FILE]: {}", data);
                 data
             },
             Err(e)=> {
@@ -42,7 +42,7 @@ fn load_processed_signature()->Result<HashSet<String>, Box<dyn Error>>{
         };
         let signatures: HashSet<String> = match serde_json::from_str(&data){
             Ok(sign )=> {
-                println!("[SIGN INFO OF JSON]:{:?}", sign);
+               // println!("[SIGN INFO OF JSON]:{:?}", sign);
                 sign
             }
             Err(e)=> {
@@ -62,7 +62,7 @@ fn save_processed_signatures()->Result<(), Box<dyn Error>>{
     let signatures = get_processed_signatures();
     let data = match serde_json::to_string(signatures){
         Ok(data) => {
-            println!("[DATA GOTTEN]:{:?}",data);
+           // println!("[DATA GOTTEN]:{:?}",data);
             data
         },
 
@@ -73,7 +73,7 @@ fn save_processed_signatures()->Result<(), Box<dyn Error>>{
     };
     match std::fs::write(PROCESSED_FILE, data){
         Ok(file)=> {
-            println!("[FILE WITH DATA]: {:?}", file);
+           // println!("[FILE WITH DATA]: {:?}", file);
             file
         }
         Err(e)=>{
@@ -90,8 +90,8 @@ fn save_processed_signatures()->Result<(), Box<dyn Error>>{
 //2. use the solana api to get rpcClient.
 //3. check if  the connection with the rpc client is valid
 //4. get the program id
-//5get the signature to recent transactions
-//6 check if the transactions are empty.
+//5. get the signature to recent transactions
+//6. check if the transactions are empty.
 //7. get the transaction details 
 //8. return handle logs. 
 pub async fn start() -> Result<(), Box<dyn Error>> {

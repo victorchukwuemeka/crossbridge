@@ -63,18 +63,24 @@ pub fn solana_signature_to_bytes32(signature: &str) -> Result<[u8; 32], Box<dyn 
 //2. network transport for communication
 //3 remove the private key prefix if 0x
 pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_signature: &str) -> Result<(), Box<dyn Error>> {
-    println!("✅ Minting {} wSOL to {}", amount, eth_address);
+    
     
     // 1. Connect to dev node
     // 1. Configuration from environment
     let eth_devnet_rpc_url = env::var("ETH_DEVNET_RPC_URL")
         .unwrap_or("https://eth-sepolia.g.alchemy.com".into());
     println!("the eth devnet {}", eth_devnet_rpc_url);
-    let contract_addr = env::var("WSOL_CONTRACT_ADDRESS")
-        .expect("WSOL_CONTRACT_ADDRESS must be set");
+    let contract_addr = env::var("CWSOL_CONTRACT_ADDRESS")
+        .expect("CWSOL_CONTRACT_ADDRESS must be set");
+     println!("📋 Contract: {}", contract_addr);
+
     let private_key = env::var("ETH_DEVNET_PRIVATE_KEY")
         .expect("DEVNET_PRIVATE_KEY must be set");
+      println!("🔑 Private key loaded: {}...{}", &private_key[..6], &private_key[private_key.len()-4..]);
     
+     quick_contract_check(&contract_addr, &eth_devnet_rpc_url).await?;
+
+
     //transport
     let transport = match Http::new(&eth_devnet_rpc_url){
         Ok(protocol) => {
@@ -98,7 +104,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     };
     let private_key_bytes = match decode(private_key_clean){
         Ok(private) =>{
-            println!("private key in bytes: {:?}", private);
+            //println!("private key in bytes: {:?}", private);
             private
         }
         Err(e)=>{
@@ -129,10 +135,10 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     println!("Using account: {:?}", sender_address);
     
     // 3. Load contract ABI and address
-    let artifact_json = include_str!("../../../smart_contracts/artifacts/contracts/wSol/WSol.sol/WSol.json");
+    let artifact_json = include_str!("../../../smart_contracts/artifacts/contracts/CWSol/CWSol.sol/CWSol.json");
     let artifact: serde_json::Value = match serde_json::from_str(artifact_json){
         Ok(abi_in_json)=>{
-            println!("[abi is loaded correctly in json]: {}", abi_in_json);
+            //println!("[abi is loaded correctly in json]: {}", abi_in_json);
             abi_in_json
         },
         Err(e)=> {
@@ -142,7 +148,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     };
     let abi = match artifact.get("abi"){
         Some(abi_value)=>{
-            println!("value of the abi is {}", abi_value);
+           // println!("value of the abi is {}", abi_value);
             abi_value
         }
         None => {
@@ -153,7 +159,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     
     let abi_bytes:Vec<u8> = match serde_json::to_vec(abi){
         Ok(vec_abi)=>{
-            println!("bytes  from json using vec {:?}", vec_abi);
+            //println!("bytes  from json using vec {:?}", vec_abi);
             vec_abi
         }
         Err(e)=>{
@@ -166,7 +172,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     
     let contract_address: Address = match contract_addr.parse(){
         Ok(wsol_contract)=>{
-            println!("wrapp sol address {} exist", wsol_contract);
+            println!("Cwrapp sol address {} exist", wsol_contract);
             wsol_contract
         }
         Err(e)=>{
@@ -177,7 +183,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
 
     let contract = match Contract::from_json(web3.eth(), contract_address, &abi_bytes){
         Ok(contract)=>{
-            println!("the full wsol contract {:?}",contract);
+            //println!("the full wsol contract {:?}",contract);
             contract
         }
         Err(e)=>{
@@ -202,9 +208,9 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
 
 
     // 4. Prepare transaction parameters
-    let to_address: Address = etheruem_address;
+      let to_address: Address = etheruem_address;
     // Multiply lamports (1e9) by another 1e9 to get to 1e18
-    let scaled_amount = U256::from(amount);
+     let scaled_amount = U256::from(amount);
     //* U256::exp10(9); // 1e9
     //let amount_u256 = U256::from(amount);
 
@@ -221,6 +227,9 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
             return Err(e.into())
         }
     };
+   // println!("address {} and scaled Amount {}", to_address, scaled_amount);
+
+   // let nonce = web3.eth().transaction_count(sender_address, None).await?;
     
     // 8. Get current gas price
     let gas_price = match web3.eth().gas_price().await{
@@ -233,6 +242,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
             return Err(e.into());
         }
     };
+
 
 
     // 5. Create transaction options
@@ -264,7 +274,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
     
     // 6. Call the mint function using the account from the node
     // We'll pass the from address directly to the call method
-    let tx_hash = match contract
+     let tx_hash = match contract
         .signed_call("mint", (to_address, scaled_amount, solana_tx_hash_h256), options,secret_key_ref)
         .await{
             Ok(call )=>{
@@ -277,7 +287,37 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
                 return Err(e.into());
             }
         };
+
+    println!("✅ Minting {} CWSOL to {}", amount, eth_address);
     
     println!("Mint transaction hash: {:?}", tx_hash);
+    Ok(())
+}
+
+
+// Add this to your existing ethereum_minter.rs file
+pub async fn quick_contract_check(contract_addr: &str, rpc_url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("🔍 Quick contract check for: {}", contract_addr);
+    
+    let transport = web3::transports::Http::new(rpc_url)?;
+    let web3 = web3::Web3::new(&transport);
+    
+    let contract_address: web3::types::H160 = contract_addr.parse()?;
+    
+    match web3.eth().code(contract_address, Some(web3::types::BlockNumber::Latest)).await {
+        Ok(code) => {
+            if code.0.is_empty() {
+                println!("❌ NO CONTRACT found at {}", contract_address);
+                println!("   Visit: https://sepolia.etherscan.io/address/{}", contract_address);
+                return Err("Contract not deployed".into());
+            } else {
+                println!("✅ Contract exists! Code size: {} bytes", code.0.len());
+            }
+        }
+        Err(e) => {
+            println!("❌ Error checking contract: {}", e);
+            return Err(e.into());
+        }
+    }
     Ok(())
 }

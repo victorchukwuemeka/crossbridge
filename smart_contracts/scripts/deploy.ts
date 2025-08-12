@@ -7,13 +7,13 @@ async function main() {
   console.log("deploying contracts with accont:", onwer.address);
 
   
-  const WSol = await ethers.getContractFactory("WSol");
+  const CWSol = await ethers.getContractFactory("CWSol");
 
 
-  const wsol = await WSol.deploy(onwer.address);
+  const cwsol = await CWSol.deploy(onwer.address);
   //await wsol.waitForDeployment();
 
-  console.log("✅ WSol deployed to:", await wsol.getAddress());
+  console.log("✅ CWSol deployed to:", await cwsol.getAddress());
 }
 
 main().catch((error) => {
