@@ -24,8 +24,8 @@ pub mod bridge_program {
         instructions::initialize::handler(ctx)
     }
 
-    pub fn lock_sol(ctx: Context<LockSol>, amount: u64, eth_address: String) -> Result<()> {
-        instructions::lock_sol::handler(ctx, amount, eth_address)
+    pub fn lock_sol(ctx: Context<LockSol>, amount: u64, eth_address: String, target_network: u8) -> Result<()> {
+        instructions::lock_sol::handler(ctx, amount, eth_address, target_network)
     }
 
     pub fn un_lock_sol(ctx: Context<UnLockSol>, amount: u64) -> Result<()> {

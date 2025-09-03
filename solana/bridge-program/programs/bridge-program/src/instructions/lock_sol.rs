@@ -26,7 +26,7 @@ pub struct LockSol<'info> {
 }
 
 
-pub fn handler(ctx: Context<LockSol>, amount: u64, eth_address: String) -> Result<()> {
+pub fn handler(ctx: Context<LockSol>, amount: u64, eth_address: String, target_network:u8) -> Result<()> {
     const FEE_BPS:u64 = 1; //fee basis points in 0.01%
     let fee = amount * FEE_BPS/10000;
     let net_amount = amount - fee;
@@ -60,6 +60,7 @@ pub fn handler(ctx: Context<LockSol>, amount: u64, eth_address: String) -> Resul
         eth_address,
         amount: net_amount,
         fee,
+        target_network,
         timestamp: Clock::get()?.unix_timestamp,
     });
 
