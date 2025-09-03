@@ -295,7 +295,7 @@ pub async fn mint_wsol(to: &str, amount: u64, eth_address : &str, solana_tx_sign
 }
 
 
-// Add this to your existing ethereum_minter.rs file
+//checking the contract existance
 pub async fn quick_contract_check(contract_addr: &str, rpc_url: &str) -> Result<(), Box<dyn std::error::Error>> {
     println!("🔍 Quick contract check for: {}", contract_addr);
     

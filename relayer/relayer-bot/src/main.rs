@@ -4,6 +4,9 @@ mod ethereum_listener;
 mod ethereum_minter;
 mod solana_unlocker;
 mod burn_tracker;
+mod base_minters;
+mod utils;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
