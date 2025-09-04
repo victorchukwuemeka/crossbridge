@@ -12,6 +12,7 @@ pub struct LockEvent {
     pub eth_address: String,
     pub amount: u64,
     pub fees: u64,
+    pub target_network: u8,
     pub timestamp: i64,
 }
 
@@ -240,6 +241,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
                              println!("  Eth_Address:{}", event.eth_address);
                              println!("   Amount: {}", event.amount);
                              println!(" fees: {}", event.fees);
+                             println!(" target-network: {}", event.target_network);
                              println!("   Timestamp: {} ({})", event.timestamp, 
                                 chrono::DateTime::from_timestamp(event.timestamp, 0)
                                 .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
