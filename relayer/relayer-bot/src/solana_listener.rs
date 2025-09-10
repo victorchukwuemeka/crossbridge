@@ -1,8 +1,10 @@
 use std::{error::Error, str::FromStr, collections::HashSet};
+use serde::de::value;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature};
 use solana_transaction_status::{UiTransactionEncoding, option_serializer::OptionSerializer};
 use tokio::time::{Duration, sleep};
+
 
 use borsh::{BorshDeserialize};
 
@@ -14,6 +16,25 @@ pub struct LockEvent {
     pub fees: u64,
     pub target_network: u8,
     pub timestamp: i64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TargetNetwork{
+    Ethereum = 1,
+    Base = 121,
+    Polygon = 137
+}
+
+impl From<u8> for TargetNetwork  {
+    fn from(value: u8) -> Self {
+        match value {
+            1 => TargetNetwork::Ethereum,
+            121 => TargetNetwork::Base,
+            137 => TargetNetwork::Polygon,
+            _ => panic!("Invalid network"),
+        }
+    }
+    
 }
 
 //  to track processed signatures
@@ -211,19 +232,25 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
             let data = &log["Program data: ".len()..];
             println!("🔍 Found serialized event data (base64): {}", data);
             
+            /***
+             * decode the serialized  event to understand the data 
+             */
             match base64::decode(data) {
                 Ok(decoded) => {
                     println!("✅ Successfully decoded base64 ({} bytes)", decoded.len());
                     
-                    // Try to interpret as UTF-8 string first
+                    
+                    /**
+                     * convert the the vec<u8> to Utf-8  string
+                     * check if the string has LockEvent
+                     * if you and so just indicate 
+                     */
                     match String::from_utf8(decoded.clone()) {
                         Ok(string) => {
                             println!("📝 UTF-8 decoded: {}", string);
                             if string.contains("LockEvent") {
                                 println!("🎉 FOUND LockEvent in string data!");
-
                             }
-
                         },
                         Err(_) => println!("⚠️ Data is not UTF-8 text (likely binary format)"),
                     }
@@ -234,6 +261,10 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
 
                     
                     // my custom event deserialization 
+                    /**
+                     * at top of the LockEvent struct we have a macro 
+                     * that we called in ther to help deserialize 
+                     */
                     match LockEvent::try_from_slice(&decoded[8..]){
                         Ok(event)=>{
                              println!("🎉 ✅ LockEvent found in tx: {}", signature);
@@ -250,23 +281,62 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
                             let user = event.user;
                             let amount = event.amount;
                             let eth_address= event.eth_address;
+                            let target_network = event.target_network;
 
-                            
-                            // Mint tokens on Ethereum side
-                           match crate::ethereum_minter::mint_wsol(
-                            &user.to_string(), 
-                            amount,
-                            &eth_address,
-                            &signature.to_string()).await{
-                                Ok(mint_ether) => {
-                                    println!("[CALLING THE MINT ETHER MODEL]: {:?}", mint_ether);
-                                    mint_ether
+
+
+                            let network = TargetNetwork::from(target_network);
+                            match network{
+                                TargetNetwork::Ethereum =>{
+                                    
+                                    // Mint tokens on Ethereum side
+                                    match crate::ethereum_minter::mint_wsol(
+                                        &user.to_string(), 
+                                        amount,
+                                        &eth_address,
+                                        &signature.to_string()
+                                    )
+                                    .await{
+                                        Ok(mint_ether) => {
+                                            println!("[CALLING THE MINT ETHER MODEL]: {:?}", mint_ether);
+                                            mint_ether
+                                        }
+                                        Err(e)=>{
+                                            println!("[THE MINT ETHER CALL FAILED]: {}",e);
+                                            return Ok(());
+                                        }
+                                    };
+                                },
+
+                                /**
+                                 * selecting base network 
+                                 */
+                                TargetNetwork::Base =>{
+                                    match crate::base_minters::mint_base_cwsol(
+                                        &user.to_string(),
+                                        amount,
+                                        &eth_address,
+                                        &signature.to_string()
+                                    )
+                                    .await{
+                                        Ok(mint_base) => {
+                                            println!("[CALLING THE MINT BASE MODEL]: {:?}", mint_base);
+                                            mint_base
+                                        }
+                                        Err(e)=>{
+                                            println!("[THE MINT BASE  CALL FAILED]: {}",e);
+                                            return Ok(());
+                                        }
+                                    }
+                                },
+
+                                //
+                                TargetNetwork::Polygon=> {
+
                                 }
-                                Err(e)=>{
-                                    println!("[THE MINT ETHER CALL FAILED]: {}",e);
-                                    return Ok(());
-                                }
-                            };
+                            } 
+
+                           
 
                             // Mark as processed only after successful minting
                            get_processed_signatures().insert(signature.to_string());
@@ -298,3 +368,4 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
     println!("=== End of transaction {} ===", signature);
     Ok(())
 }
+

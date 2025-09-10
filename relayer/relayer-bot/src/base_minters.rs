@@ -5,6 +5,7 @@ use web3::{
     types::{Address, TransactionParameters, U256,H160,H256}
 };
 
+
 use std::error::Error;
 use std::env;
 use futures::future::ok;
@@ -59,7 +60,7 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
     //private key in bytes 
     let striped_base_private_key_bytes = match decode(striped_base_private_key){
         Ok(b)=> b,
-        Err(e)=> return Ok(())
+        Err(_e)=> return Ok(())
     };
 
     //convert the bytes to secret key
@@ -104,12 +105,12 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
 
     let base_contract = match Contract::from_json(web3.eth(),contract_addr, &base_abi_bytes){
         Ok(con) => con,
-        Err(e)=> return Ok(())
+        Err(_e)=> return Ok(())
     };
 
     let base_addr = match string_to_ethereum_address(base_address){
         Ok(addr) => addr,
-        Err(e) => return Ok(())
+        Err(_e) => return Ok(())
     };
 
     // 4. Prepare transaction parameters
@@ -170,7 +171,7 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
     };
 
 
-    println!("✅ Minting {} CWSOL to {}", amount, base_address);
+    println!("✅ Minting {} CWSOL to   base address {}", amount, base_address);
     
     println!("Mint transaction hash: {:?}", base_tx_hash_signed);
     
