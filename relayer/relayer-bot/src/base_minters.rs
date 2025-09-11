@@ -22,7 +22,10 @@ use web3::signing::SecretKeyRef;
 */
 pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_tx_signature: &str )
 ->Result<(), Box<dyn Error>>
-{
+{   
+
+
+    println!("[START MINTING CWSOL ON BASE ]!");
     /**
      * configuartion of the rpc, addr  and the private key
      * all from the env .
@@ -104,13 +107,22 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
     };
 
     let base_contract = match Contract::from_json(web3.eth(),contract_addr, &base_abi_bytes){
-        Ok(con) => con,
+        Ok(con) => {
+            println!("[BASE CONTRACT ABI]");
+            con
+        },
         Err(_e)=> return Ok(())
     };
 
     let base_addr = match string_to_ethereum_address(base_address){
-        Ok(addr) => addr,
-        Err(_e) => return Ok(())
+        Ok(addr) => {
+            println!("✅ Successfully parsed base address: {:?}", addr);
+            addr
+        }
+        Err(_e) =>  {
+            println!("❌ Error parsing base address '{}': {:?}", base_address, _e);
+            return Err(_e.into())
+        }
     };
 
     // 4. Prepare transaction parameters
@@ -118,18 +130,33 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
     // Multiply lamports (1e9) by another 1e9 to get to 1e18
     let scaled_amount = U256::from(amount);
     
+
     //get the nonce to avoid double transaction
+    println!("🔍 Getting nonce for address: {:?}", sender_base_address);
     let nonce_base = match web3.eth().transaction_count(
         sender_base_address, Some(web3::types::BlockNumber::Pending)
     ).await{
-        Ok(count)=> count,
-        Err(_e)=>return Ok(())
+        Ok(count)=>{
+            println!("✅ Nonce retrieved: {}", count);
+            count
+        }
+        Err(_e)=>{
+            println!("❌ Failed to get nonce: {:?}", _e);
+            return Ok(())
+        }
+        
     };
 
     //get current gas fee 
     let base_gas_price = match web3.eth().gas_price().await{
-        Ok(price) => price,
-        Err(_e) => return Ok(())
+        Ok(price) => {
+            println!("✅ Gas price: {}", price);
+            price
+        }
+        Err(_e) =>{
+             println!("❌ Failed to get gas price: {:?}", _e);
+             return Ok(())
+        }
     };
 
     /**
@@ -152,24 +179,45 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
     /**
      * convert the solana tx signature to bytes then hash it 
     */
+    println!("🔍 Converting Solana signature: {}", solana_tx_signature);
     let solana_tx_bytes = match solana_signature_to_bytes32(solana_tx_signature){
-        Ok(hash) => hash,
-        Err(_e)=> return Ok(())
+        Ok(hash) => {
+            println!("✅ Solana signature converted");
+            hash
+        }
+        Err(_e)=> {
+            println!("❌ Failed to convert Solana signature: {:?}", _e);
+            return Ok(())
+        }
     };
     //then convert the hash to H256 used my evms
     let solana_tx_hash_H256 = H256::from_slice(&solana_tx_bytes);
 
     //secret key ref for signing the transaction
     let secret_key_ref = SecretKeyRef::new(&base_secret_key);
+    println!("[SECRET KEY REF ]!");
+
+
 
     let base_tx_hash_signed = match base_contract.signed_call(
         "mint", (to_address,scaled_amount,solana_tx_hash_H256), 
         base_options, secret_key_ref
     ).await{
-        Ok(signed) => signed,
-        Err(_e) => return Ok(())
+        Ok(signed) => {
+            println!("\x1b[1;31m===========Signed============\x1b[0m");
+            signed
+        },
+        Err(_e) => {
+            println!("\x1b[1;31m===========FAILED============\x1b[0m");
+            return Err(_e.into())
+        }
+        
     };
-
+    
+    println!("CROSSBRIDGE WSOL HAS BEEN MINTED ON BASE!");
+    println!("\x1b[1;31m==============================\x1b[0m");
+    println!("\x1b[1;33mCROSSBRIDGE WSOL HAS BEEN MINTED ON BASE!\x1b[0m");
+    println!("\x1b[1;31m==============================\x1b[0m");
 
     println!("✅ Minting {} CWSOL to   base address {}", amount, base_address);
     

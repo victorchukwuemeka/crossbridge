@@ -58,6 +58,7 @@ pub fn solana_signature_to_bytes32(signature: &str) -> Result<[u8; 32], Box<dyn 
 }
 
 
+
 //this function is for minting the fungible token
 //1. get the  rpc,smart_contract address, and  the privatekey
 //2. network transport for communication
