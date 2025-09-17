@@ -6,7 +6,7 @@ mod solana_unlocker;
 mod burn_tracker;
 mod base_minters;
 mod utils;
-
+mod fetch_tx_and_block_header;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
