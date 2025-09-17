@@ -3,7 +3,7 @@ use solana_sdk::signature::Signature;
 use solana_transaction_status::UiTransactionEncoding;
 use std::str::FromStr;
 
-pub async fn fetch_tx_and_block_header(rpc_url:&str,tx_signature: &str){
+pub async fn fetch_tx_and_block_header(rpc_url:&str,tx_signature: &str)->(String, u64){
    //let rpc_url = "https://api.devnet.solana.com";
     let client = RpcClient::new(rpc_url.to_string());
 
@@ -23,7 +23,6 @@ pub async fn fetch_tx_and_block_header(rpc_url:&str,tx_signature: &str){
     let block = client.get_block(slot).await.expect("Failed to fetch block");
 
     println!("Block header (slot {}): {:?}", slot, block.blockhash);
-
-
+    (tx_signature.to_string(), slot)
 
 }

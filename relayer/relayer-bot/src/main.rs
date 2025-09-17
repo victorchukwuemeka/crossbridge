@@ -7,6 +7,8 @@ mod burn_tracker;
 mod base_minters;
 mod utils;
 mod fetch_tx_and_block_header;
+mod merkle;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

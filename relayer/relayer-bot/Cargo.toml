@@ -27,4 +27,6 @@ tiny-keccak = "2.0.2"
 some_crate = "0.2.1"
 bs58 = "0.5.1"
 sha2 = "0.10"
+merkle_light = "0.4.0"
+rs_merkle = "1.5.0"
 
