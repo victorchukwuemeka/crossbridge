@@ -5,8 +5,8 @@ use sha2::{Sha256, Digest};
 use hex::encode;
 use solana_sdk::signature;
 use crate::fetch_tx_and_block_header::fetch_tx_and_block_header;
-use rs_merkle::Hasher;
-
+//use rs_merkle::Hasher;
+use std::hash::Hasher;
 
 #[derive(Clone)]
 pub struct Sha256Algorithm(Sha256);
