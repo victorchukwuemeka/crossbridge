@@ -1,25 +1,42 @@
-use crate::fetch_tx_and_block_header;
 use merkle_light::merkle::MerkleTree;
 use merkle_light::hash::Algorithm;
 use sha2::{Sha256, Digest};
 use hex::encode;
-use solana_sdk::signature;
-use crate::fetch_tx_and_block_header::fetch_tx_and_block_header;
-//use rs_merkle::Hasher;
 use std::hash::Hasher;
 
+use crate::fetch_tx_and_block_header::fetch_tx_and_block_header;
+
+
 #[derive(Clone)]
-pub struct Sha256Algorithm(Sha256);
+pub struct Sha256Algorithm{
+    hasher :Sha256,
+}
 
 impl Default for Sha256Algorithm {
     fn default() -> Self {
-        Sha256Algorithm(Sha256::new())
+        Sha256Algorithm{
+            hasher :Sha256::new(),
+        }
     }
 }
 
-impl Algorithm<[u8; 32]> for Sha256Algorithm{
+
+//from the Algorithms documentation to implemet it hasher must be implemented first 
+impl Hasher for Sha256Algorithm{
+    fn finish(&self) -> u64 {
+        let result = self.hasher.clone().finalize();
+        u64::from_le_bytes(result[0..8].try_into().unwrap())
+    }
+    
+    fn write(&mut self, bytes: &[u8]) {
+        self.hasher.update(bytes);
+    }
+}
+
+impl Algorithm<[u8; 32]> for Sha256Algorithm where Self: Hasher{
     fn hash(&mut self) -> [u8; 32] {
-        let result = self.0.clone().finalize();
+        //let result = self.0.clone().finalize();
+        let result = self.hasher.clone().finalize(); 
         let mut hash =[0u8; 32];
         hash.copy_from_slice(&result);
         hash
@@ -27,7 +44,7 @@ impl Algorithm<[u8; 32]> for Sha256Algorithm{
     }
 
     fn reset(&mut self) {
-        self.0 = Sha256::new();
+        self.hasher = Sha256::new();
     }
 
     fn leaf(&mut self, leaf: [u8; 32]) -> [u8; 32] {
@@ -44,7 +61,7 @@ impl Algorithm<[u8; 32]> for Sha256Algorithm{
         hasher.update(left);
         hasher.update(right);
         let result  = hasher.finalize();
-        let mut hash = [0u8; 34];
+        let mut hash = [0u8; 32];
         hash.copy_from_slice(&result);
         hash
     }
@@ -84,9 +101,9 @@ pub fn generate_proof_for_tx(
     let proof = tree.gen_proof(tx_index);
     println!("Merkle proof for transaction at index {} ", tx_index);
 
-    for hash in proof.proof() {
+    for hash in proof.lemma() {
         println!("{}", encode(hash));
     }
-
-    proof.proof().to_vec();
+    
+    proof.lemma().to_vec()
 }
