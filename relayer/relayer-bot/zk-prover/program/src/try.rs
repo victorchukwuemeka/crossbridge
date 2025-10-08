@@ -1,16 +1,12 @@
-//! A simple program that takes a number `n` as input, and writes the `n-1`th and `n`th fibonacci
-//! number as an output.
+//! A zk proof that verifies a SOL lock transaction with Merkle proof
 
-// These two lines are necessary for the program to properly compile.
-//
-// Under the hood, we wrap your main function with some extra code so that it behaves properly
-// inside the zkVM.
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use alloy_sol_types::{sol, SolType};
+use alloy_sol_types::SolType;
 use sp1_zkvm::io;
 
+// Solidity-compatible struct for Ethereum verification
 sol! {
     struct SolLockProof {
         bool isValid;
@@ -39,17 +35,13 @@ pub fn main() {
 
     // 1. Verify Merkle proof (simplified for dummy data)
     let merkle_valid =
-        verify_merkle_proof_dummy(&merkle_root, &merkle_proof, &leaf_data, leaf_index);
-
-    // 2. Verify business logic
-    let amount_valid = amount > 0 && amount < 10_000_000_000; // Reasonable SOL amount
-    let sender_valid = sender != [0u8; 32];
-    let receiver_valid = receiver != [0u8; 20];
+       verify_merkle2. Verify bu amount_val);
+let receiver_valid = receiver != [0u8; 20];
 
     let is_valid = merkle_valid && amount_valid && sender_valid && receiver_valid;
 
     // Create the proof output
-    let proof = SolLockProof {
+let proof = SolLockProof {
         isValid: is_valid,
         merkleRoot: merkle_root.into(),
         amount,
@@ -73,3 +65,4 @@ fn verify_merkle_proof_dummy(
     // In production, this would do full Merkle path verification
     !proof.is_empty() && root != &[0u8; 32] && leaf != &[0u8; 32]
 }
+
