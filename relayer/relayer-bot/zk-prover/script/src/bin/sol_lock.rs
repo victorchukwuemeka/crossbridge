@@ -1,25 +1,12 @@
-//! Generate a zk proof for SOL lock verification with Merkle proofs
-
+// script/src/bin/sol_lock.rs
 use alloy_sol_types::SolType;
 use clap::Parser;
-use sp1_sdk::{include_elf, ProverClient, SP1Stdin};
+use sol_lock_lib::SolLockPublicValues;
+use sp1_sdk::{include_elf, ProverClient, SP1Stdin}; // Import from lib
 
-/// The ELF file for our SOL lock program
 pub const SOL_LOCK_ELF: &[u8] = include_elf!("sol-lock-program");
 
-/// Solidity-compatible output structure
-#[derive(Debug)]
-struct SolLockProof {
-    is_valid: bool,
-    merkle_root: [u8; 32],
-    amount: u64,
-    receiver: [u8; 20],
-    slot: u64,
-}
-
-/// Command line arguments
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(long)]
     execute: bool,
@@ -35,10 +22,7 @@ struct Args {
 }
 
 fn main() {
-    // Setup logger
     sp1_sdk::utils::setup_logger();
-
-    // Parse arguments
     let args = Args::parse();
 
     if args.execute == args.prove {
@@ -46,21 +30,17 @@ fn main() {
         std::process::exit(1);
     }
 
-    // Setup prover client
     let client = ProverClient::from_env();
 
-    // Create dummy Merkle proof data
+    // Create dummy data (same as before)
     let dummy_merkle_root = [1u8; 32];
     let dummy_merkle_proof = vec![[2u8; 32], [3u8; 32]];
     let dummy_leaf_data = [4u8; 32];
     let dummy_leaf_index = 0u32;
-    let dummy_tree_size = 4u32;
-
-    // Create dummy transaction data
     let dummy_sender = [5u8; 32];
     let dummy_receiver = [6u8; 20];
 
-    // Setup inputs
+    // Setup inputs using SP1Stdin (following Fibonacci pattern)
     let mut stdin = SP1Stdin::new();
     stdin.write(&dummy_merkle_root);
     stdin.write(&(dummy_merkle_proof.len() as u32));
@@ -69,27 +49,31 @@ fn main() {
     }
     stdin.write(&dummy_leaf_data);
     stdin.write(&dummy_leaf_index);
-    stdin.write(&dummy_tree_size);
     stdin.write(&dummy_sender);
     stdin.write(&dummy_receiver);
     stdin.write(&args.amount);
     stdin.write(&args.slot);
 
-    println!("🔐 Generating SOL lock proof with:");
+    println!("🔐 SOL Lock Verification:");
     println!("   Amount: {} lamports", args.amount);
     println!("   Slot: {}", args.slot);
-    println!("   Receiver: {}", hex::encode(dummy_receiver));
 
     if args.execute {
         // Execute the program
         let (output, report) = client.execute(SOL_LOCK_ELF, &stdin).run().unwrap();
         println!("✅ Program executed successfully");
-        println!("📊 Cycles: {}", report.total_instruction_count());
 
-        // Decode output
-        let proof = decode_sol_lock_output(&output);
-        println!("   Valid: {}", proof.is_valid);
-        println!("   Merkle Root: {}", hex::encode(proof.merkle_root));
+        // Decode using ABI (EXACTLY like Fibonacci)
+        let public_values = SolLockPublicValues::abi_decode(&output, true).unwrap();
+        println!("   Valid: {}", public_values.isValid);
+        println!(
+            "   Merkle Root: {}",
+            hex::encode(public_values.merkleRoot.0)
+        );
+        println!("   Amount: {}", public_values.amount);
+        println!("   Receiver: {}", hex::encode(public_values.receiver.0));
+        println!("   Slot: {}", public_values.slot);
+        println!("📊 Cycles: {}", report.total_instruction_count());
     } else {
         // Generate proof
         let (pk, vk) = client.setup(SOL_LOCK_ELF);
@@ -104,32 +88,15 @@ fn main() {
         client.verify(&proof, &vk).expect("failed to verify proof");
         println!("✅ Proof verified successfully!");
 
-        // Decode and show results
-        let result = decode_sol_lock_output(&proof.public_values);
-        println!("   Valid: {}", result.is_valid);
-        println!("   Merkle Root: {}", hex::encode(result.merkle_root));
-        println!("   Amount: {}", result.amount);
-        println!("   Receiver: {}", hex::encode(result.receiver));
-        println!("   Slot: {}", result.slot);
-    }
-}
-
-/// Decode the SOL lock proof output
-fn decode_sol_lock_output(output: &[u8]) -> SolLockProof {
-    // For now, use simple encoding. Later we can use ABI encoding like Fibonacci
-    let is_valid = output[0] != 0;
-    let mut merkle_root = [0u8; 32];
-    merkle_root.copy_from_slice(&output[1..33]);
-    let amount = u64::from_le_bytes(output[33..41].try_into().unwrap());
-    let mut receiver = [0u8; 20];
-    receiver.copy_from_slice(&output[41..61]);
-    let slot = u64::from_le_bytes(output[61..69].try_into().unwrap());
-
-    SolLockProof {
-        is_valid,
-        merkle_root,
-        amount,
-        receiver,
-        slot,
+        // Decode public values using ABI
+        let public_values = SolLockPublicValues::abi_decode(&proof.public_values, true).unwrap();
+        println!("   Valid: {}", public_values.isValid);
+        println!(
+            "   Merkle Root: {}",
+            hex::encode(public_values.merkleRoot.0)
+        );
+        println!("   Amount: {}", public_values.amount);
+        println!("   Receiver: {}", hex::encode(public_values.receiver.0));
+        println!("   Slot: {}", public_values.slot);
     }
 }
