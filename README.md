@@ -1,37 +1,125 @@
 # CrossBridge
-
 **Bridging Your SOL to ETH and Beyond**
 
-CrossBridge is a cross-chain bridge that enables token transfers from Solana to Ethereum and other chains. The bridge leverages Merkle proofs on Solana to securely verify transactions before they are released on the destination chain.  
+CrossBridge is a cross-chain bridge enabling secure token transfers from Solana to Ethereum and other EVM-compatible chains.
+
+---
+
+## Project Status
+
+### ✅ Version 1.0 (Working Prototype)
+We have a **fully functional bridge** where:
+- SOL is locked on Solana
+- wSOL is minted on the destination chain (Ethereum/Base/etc.)
+- Runs on a centralized relayer with a single signer (not multisig)
+- **Status:** Live and operational
+
+### 🚧 Version 2.0 (Trustless - In Development)
+We are building the **next generation trustless bridge** featuring:
+- **Merkle Proof Verification:** Proves transaction inclusion in Solana blocks
+- **Zero-Knowledge Proofs:** ZK proofs generated via SP1 zkVM
+- **Cryptographic Verification:** Destination chain verifier contract validates ZK proofs before minting
+- **Decentralized:** No reliance on centralized signers or multisig committees
+
+**Workflow:**
+
+Lock SOL on Solana
+↓
+Generate Merkle Proof (transaction in block)
+↓
+Pass to SP1 zkVM (generate ZK proof)
+↓
+Submit ZK proof to destination chain
+↓
+Verifier contract validates proof
+↓
+Mint wSOL to user
+
+
 
 ---
 
 ## Features
 
-- **SOL → ETH Transfers:** Seamlessly move your Solana tokens to Ethereum.  
-- **Merkle Proof on Solana:** Ensures that transactions are securely verified on the Solana blockchain.  
-- **Future ZK Integration:** Plans to add zero-knowledge proofs on the destination chain to enhance security and privacy.  
-- **Multi-Chain Ready:** Designed with expansion in mind for other blockchain networks.  
-- **Developer-Friendly:** APIs and tools in development to integrate CrossBridge into decentralized applications.  
+### Current (V1)
+- **SOL → ETH Transfers:** Seamlessly move Solana tokens to Ethereum
+- **Real-Time Monitoring:** Track transactions through the bridging process
+- **Multi-Chain Ready:** Supports Ethereum, Base, and other EVM chains
+
+### Coming Soon (V2)
+- **Trustless Architecture:** Pure cryptographic verification, no trusted intermediaries
+- **ZK-Powered Security:** Zero-knowledge proofs ensure transaction validity
+- **Merkle Proofs:** Cryptographically prove transactions exist in Solana blocks
+- **Developer APIs:** Tools for dApp integration
 
 ---
 
 ## How It Works
 
-1. **Deposit on Solana:** Users lock their tokens on the Solana blockchain.  
-2. **Merkle Proof Verification:** The bridge verifies transactions using Merkle proofs to confirm authenticity.  
-3. **Release on Destination Chain:** Once verified, the equivalent tokens can be released on Ethereum.  
-4. **Monitoring:** Transactions are trackable, giving users visibility into the bridging process.  
+### Version 1.0 (Current)
+1. **Lock SOL:** User locks tokens in Solana contract
+2. **Event Detection:** Centralized relayer monitors lock events
+3. **Sign & Submit:** Relayer signs transaction and submits to destination
+4. **Mint wSOL:** Destination contract mints wrapped tokens
+
+### Version 2.0 (Trustless - In Development)
+1. **Lock SOL:** User locks tokens on Solana blockchain
+2. **Wait for Finality:** System waits for block finalization (32+ slots)
+3. **Generate Merkle Proof:** Build cryptographic proof that transaction exists in block
+4. **ZK Proof Generation:** SP1 zkVM wraps Merkle proof in zero-knowledge proof
+5. **Submit to Destination:** Relayer (anyone can run) submits ZK proof
+6. **Verify & Mint:** Verifier contract validates ZK proof and mints wSOL
+
+---
+
+## Current Development Phase
+
+### Phase 1: Infrastructure ✅
+- Solana block fetching
+- Transaction parsing
+- Event monitoring
+
+### Phase 2: Merkle Proofs 🚧
+- Building Merkle trees from Solana blocks
+- Generating transaction inclusion proofs
+- **Status:** Implementation complete, testing in progress
+
+### Phase 3: ZK Integration 🚧
+- Setting up SP1 zkVM framework
+- Designing ZK circuits for proof verification
+- Porting Merkle verification to ZK-compatible code
+- **Status:** Framework installed, circuit design underway
+
+### Phase 4: Smart Contracts (Next)
+- ZK verifier contract on destination chains
+- Enhanced lock/unlock mechanisms
+- Replay protection
+
+### Phase 5: Testnet & Audits (Upcoming)
+- Deploy V2 to testnets
+- Security audits
+- Bug bounty program
+
+---
+
+## Architecture
+
+### V1 (Current)
+
+
+Solana → Centralized Relayer → EVM Chain
+(Single Signer)
 
 ---
 
 ## Roadmap
 
-- **ZK Proofs on Destination Chain:** Enhance security and privacy for cross-chain transfers.  
-- **Support for More Chains:** Expand beyond Solana and Ethereum to include additional blockchain networks.  
-- **Developer Tools:** Build robust APIs for easy integration with dApps.  
+### 2025 Q2
+- ✅ Complete Merkle proof generation
+- 🚧 Integrate SP1 zkVM
+- 🚧 Build ZK circuits for verification
 
----
-
-CrossBridge is actively being developed to make cross-chain transfers more secure and efficient. Contributions and feedback are welcome as we continue to build toward a safer and more scalable bridge.  
-
+### 2025 Q3-Q4
+- Deploy trustless version to testnet
+- Security audits
+-
