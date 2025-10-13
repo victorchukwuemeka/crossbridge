@@ -8,7 +8,7 @@ mod base_minters;
 mod utils;
 mod fetch_tx_and_block_header;
 mod merkle;
-
+mod solana_state_client;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
