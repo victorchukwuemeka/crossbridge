@@ -14,7 +14,7 @@ use solana_transaction_status::UiTransactionEncoding;
 pub struct UserLockState{
     pub user : Pubkey,
     pub amount : u64,
-    pub locked_at : i64,
+    pub bump : u8,
 } 
 
 
@@ -45,7 +45,7 @@ impl SolanaStateClient {
     }
     
     //getting the bridge pda also used for verification
-    pub fn get_bridge_pda(&self)->Pubkey{
+    pub fn get_bridge_account_pda(&self)->Pubkey{
         let (pda, _bump) = Pubkey::find_program_address(
             &[b"bridge_vault_v2"], 
             &self.program_id
@@ -79,20 +79,20 @@ impl SolanaStateClient {
                 Ok(Some(UserLockState {
                     user: user_balance.user,
                     amount: user_balance.locked_amount,
-                    locked_at : 02,
+                    bump : user_balance.bump
                 }))
             },
             Err(_) => {
                 println!("❌ PDA account not found");
                 Ok(None)
             }
-        };
+        }
 
     }
 
 
     fn deserialize_user_balance(&self, data: &[u8])->Result<UserBalance, Box<dyn Error>>{
-        let data  = &data[8..0];// remember the descriminator i' skipping
+        let data  = &data[8..];// remember the descriminator i' skipping
 
         // Parse based on your UserBalance struct:
         //space = 8 + 32 + 8 + 1, // discriminator + pubkey + u64 + bump
@@ -111,6 +111,7 @@ impl SolanaStateClient {
         })
     }
 
+
 }
 
 
@@ -120,3 +121,6 @@ struct UserBalance {
     pub locked_amount: u64,
     pub bump: u8,
 }
+
+
+
