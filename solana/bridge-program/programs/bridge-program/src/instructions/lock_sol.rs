@@ -49,7 +49,9 @@ pub fn handler(ctx: Context<LockSol>, amount: u64, eth_address: String, target_n
     //money going into the bridge account 
     ctx.accounts.bridge_account.total_locked += net_amount;
     ctx.accounts.bridge_account.fees_collected += fee;
-
+    
+    ctx.accounts.user_balance.user = ctx.accounts.user.key();
+    
     //money going into the user account 
     ctx.accounts.user_balance.locked_amount += net_amount;
     

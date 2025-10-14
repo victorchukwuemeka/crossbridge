@@ -92,7 +92,14 @@ impl SolanaStateClient {
 
 
     fn deserialize_user_balance(&self, data: &[u8])->Result<UserBalance, Box<dyn Error>>{
+        
+        println!("🔢 Full account data (hex): {}", hex::encode(data));
+        println!("🔢 Account data length: {} bytes", data.len());
+    
+        
         let data  = &data[8..];// remember the descriminator i' skipping
+        println!("🔢 After skipping discriminator (hex): {}", hex::encode(data));
+
 
         // Parse based on your UserBalance struct:
         //space = 8 + 32 + 8 + 1, // discriminator + pubkey + u64 + bump
@@ -103,6 +110,8 @@ impl SolanaStateClient {
         let locked_amount = u64::from_le_bytes(amount_bytes);
 
         let bump = data[40];
+
+        println!("📊 Deserialized - User: {}, Amount: {}, Bump: {}", user, locked_amount, bump);
         
         Ok(UserBalance {
             user,
