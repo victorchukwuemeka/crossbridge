@@ -1,10 +1,10 @@
 use std::{error::Error, str::FromStr, collections::HashSet};
 use serde::de::value;
-use solana_client::rpc_client::RpcClient;
+use solana_client::rpc_client::{self, RpcClient};
 use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature};
 use solana_transaction_status::{UiTransactionEncoding, option_serializer::OptionSerializer};
 use tokio::time::{Duration, sleep};
-
+use crate::solana_state_client::SolanaStateClient;
 
 
 use borsh::{BorshDeserialize};
@@ -17,6 +17,22 @@ pub struct LockEvent {
     pub fees: u64,
     pub target_network: u8,
     pub timestamp: i64,
+}
+
+
+//for listening to solana across functions
+pub struct ListenerContext {
+    pub rpc_url: String,
+    pub program_id: Pubkey,
+    pub state_client: SolanaStateClient,
+}
+
+impl ListenerContext {
+    pub fn new(rpc_url: String, program_id:Pubkey)->Self{
+        let state_client  = SolanaStateClient::new(rpc_url.clone(), program_id);
+        Self { rpc_url, program_id, state_client }
+    }
+
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -38,9 +54,13 @@ impl From<u8> for TargetNetwork  {
     
 }
 
+
+
+
 //  to track processed signatures
 static mut PROCESSED_SIGNATURES: Option<HashSet<String>> = None;
 const PROCESSED_FILE: &str = "processed_sigs.txt";
+
 
 
 fn get_processed_signatures() -> &'static mut HashSet<String> {
@@ -109,6 +129,12 @@ fn save_processed_signatures()->Result<(), Box<dyn Error>>{
     Ok(())
 }
 
+
+
+
+
+
+
 //1. get the solana api
 //2. use the solana api to get rpcClient.
 //3. check if  the connection with the rpc client is valid
@@ -150,10 +176,13 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
             return Ok(());
         }
     };
+
+    //making it easy to pass rpc data between functions
+    let ctx = ListenerContext::new(rpc_url.to_string(), program_id);
     
     loop {
 
-        // Get recent transactions for the program
+        // Get recent transactions signatures using  the program id 
         let signatures = match  client.get_signatures_for_address(&program_id){
             Ok(sigs) => {
                // println!("✅ Found {} signatures", sigs.len());
@@ -201,7 +230,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
                         OptionSerializer::None => continue,
                         OptionSerializer::Skip => continue,
                     };
-                    match handle_logs(&sig_info.signature, logs).await{
+                    match handle_logs(&sig_info.signature, logs, &ctx).await{
                         Ok(handle) =>{
                             println!("[HANDLE LOGS]{:?}",handle);
                             handle
@@ -221,9 +250,14 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
 }
 
 
-async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn Error>> {
+async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) -> Result<(), Box<dyn Error>> {
     println!("\n=== Processing transaction: {} ===", signature);
     println!("Total logs found: {}", logs.len());
+
+    
+    //the state client is used for pda verification before a transaction is made .
+    let state_client = &ctx.state_client;
+    
     
     for (i, log) in logs.iter().enumerate() {
         println!("\n[Log {}]: {}", i, log);
@@ -283,6 +317,28 @@ async fn handle_logs(signature: &str, logs: Vec<String>) -> Result<(), Box<dyn E
                             let amount = event.amount;
                             let eth_address= event.eth_address;
                             let target_network = event.target_network;
+                            
+                            /**
+                             making sure the program state pda is matching with the solana program
+                             so that the event data will 100  percent be the same with the program state
+                            */
+                            let lock_state = match state_client.get_user_lock_state(user){
+                                Ok(Some(lock_state)) => lock_state,
+                                Ok(None) => {
+                                    println!(" No lock state found for user");
+                                    return Ok(());
+                                }
+                                Err(e) => {
+                                    println!(" Error retrieving lock state: {}", e);
+                                    return Ok(());
+                                }
+                            };
+
+                            if lock_state.amount != amount{
+                                println!("❌ Amount mismatch! Event: {}, Lock State: {}", amount, lock_state.amount);
+                                return Ok(());
+                            }
+
 
 
 
