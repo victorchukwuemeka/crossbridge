@@ -5,3 +5,5 @@ target/
 solana/validator.log
 
 relayer/relayer-bot/.env
+
+solana/bridge-program/command_to_run_everything_you_want_redeploy.md
