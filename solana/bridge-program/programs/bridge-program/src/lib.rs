@@ -1,7 +1,7 @@
 // lib.rs
 use anchor_lang::prelude::*;
 
-declare_id!("AzSa9p2EqSy9AH9CR6zRkdk4A5fGpvVnTbGAkhRnZxjk");
+declare_id!("7N9UCyKUqac5JuEjn4inZcBFhi87FXDRy3rP1mNhTrdB");
 
 // Import your modules
 pub mod instructions;
