@@ -334,7 +334,10 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
                                 }
                             };
 
+                            println!("Lock State: {:?}", lock_state);
+
                             if lock_state.amount != amount{
+                                
                                 println!("❌ Amount mismatch! Event: {}, Lock State: {}", amount, lock_state.amount);
                                 return Ok(());
                             }

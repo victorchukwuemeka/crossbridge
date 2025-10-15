@@ -4,6 +4,6 @@ use anchor_lang::prelude::*;
 pub struct UserBalance {
     pub user: Pubkey,
     pub locked_amount: u64,
+    pub last_locked_amount: u64,
     pub bump: u8,
 }
-
