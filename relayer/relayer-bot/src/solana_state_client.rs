@@ -14,6 +14,7 @@ use solana_transaction_status::UiTransactionEncoding;
 pub struct UserLockState{
     pub user : Pubkey,
     pub amount : u64,
+    pub last_locked_amount: u64,
     pub bump : u8,
 } 
 
@@ -79,6 +80,7 @@ impl SolanaStateClient {
                 Ok(Some(UserLockState {
                     user: user_balance.user,
                     amount: user_balance.locked_amount,
+                    last_locked_amount: user_balance.last_locked_amount,
                     bump : user_balance.bump
                 }))
             },
@@ -102,20 +104,25 @@ impl SolanaStateClient {
 
 
         // Parse based on your UserBalance struct:
-        //space = 8 + 32 + 8 + 1, // discriminator + pubkey + u64 + bump
+        //space = 8 + 32 + 8 + 8 + 1, // discriminator + pubkey + u64 + u64 +  bump
         let user_bytes: [u8; 32] = data[0..32].try_into()?;
         let user = Pubkey::new_from_array(user_bytes);
 
         let amount_bytes: [u8; 8] = data[32..40].try_into()?;
         let locked_amount = u64::from_le_bytes(amount_bytes);
 
-        let bump = data[40];
+        let last_locked_amount_in_bytes: [u8; 8] = data[40..48].try_into()?;
+        let last_locked_amount = u64::from_le_bytes(last_locked_amount_in_bytes);
 
-        println!("📊 Deserialized - User: {}, Amount: {}, Bump: {}", user, locked_amount, bump);
+
+        let bump = data[48];
+
+        println!("📊 Deserialized - User: {}, Amount: {}, LastAmount{}, Bump: {}", user, locked_amount, last_locked_amount, bump);
         
         Ok(UserBalance {
             user,
             locked_amount,
+            last_locked_amount,
             bump,
         })
     }
@@ -128,6 +135,7 @@ impl SolanaStateClient {
 struct UserBalance {
     pub user: Pubkey,
     pub locked_amount: u64,
+    pub last_locked_amount: u64,
     pub bump: u8,
 }
 

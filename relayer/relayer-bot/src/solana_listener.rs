@@ -318,10 +318,10 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
                             let eth_address= event.eth_address;
                             let target_network = event.target_network;
                             
-                            /**
-                             making sure the program state pda is matching with the solana program
-                             so that the event data will 100  percent be the same with the program state
-                            */
+                            
+                             //making sure the program state pda is matching with the solana program
+                            // so that the event data will 100  percent be the same with the program state
+                            
                             let lock_state = match state_client.get_user_lock_state(user){
                                 Ok(Some(lock_state)) => lock_state,
                                 Ok(None) => {
