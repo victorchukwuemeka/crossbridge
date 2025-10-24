@@ -335,10 +335,12 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
                             };
 
                             println!("Lock State: {:?}", lock_state);
+                            println!("Amount from event{}", amount);
+                            println!("Last Amount from PDA State{}", lock_state.last_locked_amount);
 
-                            if lock_state.amount != amount{
+                            if lock_state.last_locked_amount != amount{
                                 
-                                println!("❌ Amount mismatch! Event: {}, Lock State: {}", amount, lock_state.amount);
+                                println!("❌ Amount mismatch! Event: {}, last lokeked amount: {}", amount, lock_state.last_locked_amount);
                                 return Ok(());
                             }
 

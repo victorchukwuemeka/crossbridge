@@ -25,7 +25,6 @@ pub struct SolanaStateClient{
 }
 
 
-
 impl SolanaStateClient {
 
     pub fn new(rpc_url: String , program_id: Pubkey)->Self{
@@ -39,7 +38,7 @@ impl SolanaStateClient {
     //getting the user pda cause we want to use it for transaction verification
     pub fn get_user_balance_pda(&self, user:Pubkey)->Pubkey{
         let (pda, _bump) = Pubkey::find_program_address(
-            &[b"user_balance", user.as_ref()],
+            &[b"user_balance_v2", user.as_ref()],
             &self.program_id
         );
         pda
