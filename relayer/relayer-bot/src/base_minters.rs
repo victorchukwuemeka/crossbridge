@@ -17,7 +17,7 @@ use crate::utils::solana_signature_to_bytes32;
 use web3::signing::SecretKeyRef;
 
 
-/**
+/*
  * the mint function for minting the base_cwsol 
 */
 pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_tx_signature: &str )
@@ -26,7 +26,7 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
 
 
     println!("[START MINTING CWSOL ON BASE ]!");
-    /**
+    /*
      * configuartion of the rpc, addr  and the private key
      * all from the env .
     */
@@ -37,7 +37,7 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
      let base_private_key = env::var("BASE_TESTNET_PRIVATE_KEY")
       .expect("the private key is needed");
 
-    /**
+    /*
      * transport for protocol connection that helps us communicate with the 
      * rpc
      */
@@ -47,7 +47,7 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
     };
     let web3 = Web3::new(transport);
 
-    /**
+    /*
      * for the private key we 
      * 1. we remove the 0x because is not needed for our convertion of hex to bytes 
      * 2. after removing the 0x we then convert the key to bytes 
@@ -159,7 +159,7 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
         }
     };
 
-    /**
+    /*
      * in evm transactions 
      * We need the Options to tell the blockchain how much gas we allow,
      *  what fee we’ll pay, and which nonce to use, 
@@ -176,7 +176,7 @@ pub async fn mint_base_cwsol(to: &str, amount: u64, base_address: &str, solana_t
         ..Default::default()
     };
 
-    /**
+    /*
      * convert the solana tx signature to bytes then hash it 
     */
     println!("🔍 Converting Solana signature: {}", solana_tx_signature);

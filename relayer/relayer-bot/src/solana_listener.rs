@@ -267,7 +267,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
             let data = &log["Program data: ".len()..];
             println!("🔍 Found serialized event data (base64): {}", data);
             
-            /***
+            /*
              * decode the serialized  event to understand the data 
              */
             match base64::decode(data) {
@@ -275,7 +275,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
                     println!("✅ Successfully decoded base64 ({} bytes)", decoded.len());
                     
                     
-                    /**
+                    /*
                      * convert the the vec<u8> to Utf-8  string
                      * check if the string has LockEvent
                      * if you and so just indicate 
@@ -296,7 +296,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
 
                     
                     // my custom event deserialization 
-                    /**
+                    /*
                      * at top of the LockEvent struct we have a macro 
                      * that we called in ther to help deserialize 
                      */
@@ -370,7 +370,7 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
                                     };
                                 },
 
-                                /**
+                                /*
                                  * selecting base network 
                                  */
                                 TargetNetwork::Base =>{

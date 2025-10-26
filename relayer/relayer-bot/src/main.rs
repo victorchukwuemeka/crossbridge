@@ -9,6 +9,7 @@ mod utils;
 mod fetch_tx_and_block_header;
 mod merkle;
 mod solana_state_client;
+mod verify_merkle_proof;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
