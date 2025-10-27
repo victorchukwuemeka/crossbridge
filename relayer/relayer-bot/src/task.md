@@ -1,0 +1,1 @@
+#  study the try.rs page , figure out how to test the merkle prove and pass the data their from solana after passing the one from the test.
