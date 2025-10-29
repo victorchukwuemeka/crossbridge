@@ -59,8 +59,9 @@ Mint wSOL to user
 ### Version 1.0 (Current)
 1. **Lock SOL:** User locks tokens in Solana contract
 2. **Event Detection:** Centralized relayer monitors lock events
-3. **Sign & Submit:** Relayer signs transaction and submits to destination
-4. **Mint wSOL:** Destination contract mints wrapped tokens
+3. **verify event with pda state 
+4. **Sign & Submit:** Relayer signs transaction and submits to destination
+5. **Mint wSOL:** Destination contract mints wrapped tokens
 
 ### Version 2.0 (Trustless - In Development)
 1. **Lock SOL:** User locks tokens on Solana blockchain
@@ -78,6 +79,7 @@ Mint wSOL to user
 - Solana block fetching
 - Transaction parsing
 - Event monitoring
+- Passing the transaction to my merkle prove 
 
 ### Phase 2: Merkle Proofs 🚧
 - Building Merkle trees from Solana blocks
@@ -114,7 +116,7 @@ Solana → Centralized Relayer → EVM Chain
 
 ## Roadmap
 
-### 2025 Q2
+### 2025 Q4
 - ✅ Complete Merkle proof generation
 - 🚧 Integrate SP1 zkVM
 - 🚧 Build ZK circuits for verification
