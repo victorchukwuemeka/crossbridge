@@ -31,3 +31,7 @@ merkle_light = "0.4.0"
 rs_merkle = "1.5.0"
 anyhow = "1.0.100"
 
+
+[[bin]]
+name = "test_merkle"
+path = "src/test_merkle.rs"

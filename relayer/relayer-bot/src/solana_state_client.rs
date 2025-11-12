@@ -116,7 +116,7 @@ impl SolanaStateClient {
 
         let bump = data[48];
 
-        println!("📊 Deserialized - User: {}, Amount: {}, LastAmount{}, Bump: {}", user, locked_amount, last_locked_amount, bump);
+        println!(" Deserialized - User: {}, Amount: {}, LastAmount{}, Bump: {}", user, locked_amount, last_locked_amount, bump);
         
         Ok(UserBalance {
             user,

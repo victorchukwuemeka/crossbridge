@@ -10,6 +10,8 @@ mod fetch_tx_and_block_header;
 mod merkle;
 mod solana_state_client;
 mod verify_merkle_proof;
+mod test_merkle;
+
 
 
 #[tokio::main]

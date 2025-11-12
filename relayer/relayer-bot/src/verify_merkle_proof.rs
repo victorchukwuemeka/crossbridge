@@ -6,21 +6,22 @@ use sha2::{Sha256, Digest};
 use hex::encode;
 
 use crate::merkle::TransactionLeaf;
+use crate::merkle::MerkleProofData;
 
-#[derive(Debug, Clone)]
-pub struct MerkleProofData{
+//#[derive(Debug, Clone)]
+/*pub struct MerkleProofData{
     pub transactions : TransactionLeaf,
     pub tx_index: usize,
     pub proof: Vec<[u8; 32]>,
     pub root: [u8; 32],
     pub total_transactions: usize,
-}
+}*/
 
 
 pub fn verify_merkle_proof(proof_data : &MerkleProofData)->Result<bool>{
     println!("\n✓ Verifying Merkle proof...");
 
-    let mut current_hash = proof_data.transactions.leaf_hash;
+    let mut current_hash = proof_data.transaction.leaf_hash;
 
     for (i, sibling) in proof_data.proof.iter().enumerate() {
         let mut hasher = Sha256::new();
