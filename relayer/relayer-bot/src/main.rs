@@ -11,7 +11,7 @@ mod merkle;
 mod solana_state_client;
 mod verify_merkle_proof;
 mod test_merkle;
-
+mod merkle_validator;
 
 
 #[tokio::main]

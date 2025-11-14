@@ -1,3 +1,5 @@
+
+
 // both the serialization before zk and calling the local test 
 
 
@@ -56,8 +58,7 @@ async fn fetch_tx_and_block_header(
         .map_err(|e| anyhow!("RPC fetch failed: {}", e))
 }
 
-Usage Example:
-rustuse anyhow::Result;
+
 
 #[tokio::main]
 async fn main() -> Result<()> {

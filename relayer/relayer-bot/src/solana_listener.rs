@@ -5,6 +5,7 @@ use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature}
 use solana_transaction_status::{UiTransactionEncoding, option_serializer::OptionSerializer};
 use tokio::time::{Duration, sleep};
 use crate::solana_state_client::SolanaStateClient;
+use crate::merkle_validator::validate_transaction_in_block;
 
 
 use borsh::{BorshDeserialize};
@@ -130,13 +131,36 @@ fn save_processed_signatures()->Result<(), Box<dyn Error>>{
 }
 
 
+async  fn  call_the_merkle_validator(
+    signature: &str,
+    tx_slot: u64
+)->Result<(), Box<dyn Error>>{
+    match validate_transaction_in_block(
+            "https://api.mainnet-beta.solana.com",
+            &signature.to_string(),
+            tx_slot
+        ).await {
+            Ok(true) => {
+                println!(" Transaction Merkle proof verified");
+                Ok(())
+            }
+            Ok(false) => {
+                println!(" Merkle proof invalid - REJECTING transaction");
+                return Ok(());
+            }
+            Err(e) => {
+                println!(" Merkle validation error: {} - REJECTING", e);
+                return Ok(());
+            }
+        }
+}
 
 
 
 
 
-//1. get the solana api
-//2. use the solana api to get rpcClient.
+//1. get the solana url
+//2. use the solana url to get rpcClient.
 //3. check if  the connection with the rpc client is valid
 //4. get the program id
 //5. get the signature to recent transactions
@@ -189,7 +213,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
                 sigs
             }
             Err(e) => {
-                println!("❌ Error getting signatures: {:?}", e);
+                println!(" Error getting signatures: {:?}", e);
                 sleep(Duration::from_secs(10)).await;
                 continue;
             }
@@ -197,7 +221,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
 
 
         if signatures.is_empty() {
-            println!("ℹ️ No transactions found for this program yet");
+            println!("ℹ No transactions found for this program yet");
             sleep(Duration::from_secs(10)).await;
             continue;
         }
@@ -230,6 +254,7 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
                         OptionSerializer::None => continue,
                         OptionSerializer::Skip => continue,
                     };
+                    
                     match handle_logs(&sig_info.signature, logs, &ctx).await{
                         Ok(handle) =>{
                             println!("[HANDLE LOGS]{:?}",handle);
@@ -294,7 +319,9 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
                     let binary_hex = hex::encode(&decoded);
                     println!("🔢 Hex dump: {}", &binary_hex);
 
-                    
+
+
+
                     // my custom event deserialization 
                     /*
                      * at top of the LockEvent struct we have a macro 
@@ -312,6 +339,10 @@ async fn handle_logs(signature: &str, logs: Vec<String>, ctx: &ListenerContext) 
                                 chrono::DateTime::from_timestamp(event.timestamp, 0)
                                 .map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
                                 .unwrap_or_else(|| "Invalid timestamp".to_string()));
+
+                            //i need to get the slot first and it is where we stopped
+                            //till next time i get back on this .
+                            //call_the_merkle_validator(&signature, &tx_slot).await?;
 
                             let user = event.user;
                             let amount = event.amount;

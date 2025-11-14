@@ -168,13 +168,13 @@ pub async fn create_merkle_tree_from_txs(
                     transaction_leaves.push(leaf);
                 }
                 Err(e) => {
-                    println!("  ❌ Failed to create leaf for tx {}: {}", sig, e);
+                    println!(" Failed to create leaf for tx {}: {}", sig, e);
                     return Err(anyhow!("Failed to create leaf for tx {}: {}", sig, e));
                 }
             }
         }
         Err(e) => {
-            println!("  ❌ Failed to fetch tx {}: {}", sig, e);
+            println!(" Failed to fetch tx {}: {}", sig, e);
             return Err(anyhow!("Failed to fetch transaction {}: {}", sig, e));
         }
     }

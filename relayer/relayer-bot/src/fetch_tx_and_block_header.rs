@@ -8,6 +8,8 @@ use solana_transaction_status::{TransactionDetails};
 use solana_sdk::commitment_config::CommitmentConfig;
 use solana_client::rpc_config::RpcTransactionConfig;
 
+
+
 /** 
 pub async fn fetch_tx_and_block_header(rpc_url:&str,tx_signature: &str)->Result<(String, u64), Box<dyn Error>>{
    //let rpc_url = "https://api.devnet.solana.com";
@@ -43,6 +45,7 @@ pub async fn fetch_tx_and_block_header(rpc_url:&str,tx_signature: &str)->Result<
 
 }
 */
+
 
 pub async fn fetch_tx_and_block_header(rpc_url: &str, tx_signature: &str) -> Result<(String, u64), Box<dyn Error>> {
     let client = RpcClient::new(rpc_url.to_string());

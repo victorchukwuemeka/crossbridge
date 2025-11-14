@@ -1,1 +1,1 @@
-#  study the try.rs page , figure out how to test the merkle prove and pass the data their from solana after passing the one from the test.
+# i stopped at getting the slot needed for the merkle function that calls the whole , merkle structure .
