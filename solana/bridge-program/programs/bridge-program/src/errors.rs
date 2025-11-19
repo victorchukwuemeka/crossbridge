@@ -8,4 +8,6 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Insufficient user funds")]
     InsufficientUserFunds,
+    #[msg("Arithemic  Underflow")]
+    Underflow
 }

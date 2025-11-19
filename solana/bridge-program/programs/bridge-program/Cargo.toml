@@ -20,7 +20,10 @@ idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
 anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
-anchor-spl = "0.31.1"   
+anchor-spl = "0.31.1"  
+
+sha2 = "0.10"
+
 
 [patch.crates-io]
 proc-macro2 = "=1.0.94"

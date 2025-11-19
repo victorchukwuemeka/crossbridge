@@ -56,14 +56,24 @@ pub fn handler(ctx: Context<UnLockSol>, amount: u64) -> Result<()> {
 
     );
 
+
+    //always remember -= and += oparators are okay here because solana vm won't over flow in lamport here 
     **ctx.accounts.bridge_account.to_account_info().try_borrow_mut_lamports()? -= amount;
     **ctx.accounts.user.to_account_info().try_borrow_mut_lamports()? += amount;
 
     
 
     
-     ctx.accounts.bridge_account.total_locked -= amount;
-     ctx.accounts.user_balance.locked_amount -= amount;
+     //ctx.accounts.bridge_account.total_locked -= amount;
+
+
+     ctx.accounts.bridge_account.total_locked = ctx.accounts.bridge_account.total_locked
+     .checked_sub(amount)
+     .ok_or(error!(ErrorCode::Underflow))?;
+    
+    ctx.accounts.user_balance.locked_amount = ctx.accounts.user_balance.locked_amount
+    .checked_sub(amount)
+    .ok_or(error!(ErrorCode::Underflow))?;
 
     emit!(UnLockEvent {
         user: ctx.accounts.user.key(),
@@ -73,3 +83,5 @@ pub fn handler(ctx: Context<UnLockSol>, amount: u64) -> Result<()> {
 
     Ok(())
 }
+
+
