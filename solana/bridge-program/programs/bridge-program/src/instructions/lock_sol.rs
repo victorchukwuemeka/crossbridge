@@ -16,7 +16,7 @@ pub struct LockSol<'info> {
         init_if_needed,
         payer = user,
         space = 8 + 32 + 8 + 8 + 1 + 32 + 32, // discriminator + pubkey + u64 + u64 + bump+ 64 for privacy
-        seeds = [b"user_balance_v2", user.key().as_ref()],
+        seeds = [b"user_balance_v3", user.key().as_ref()],
         bump
     )]
     pub user_balance: Account<'info, UserBalance>,
