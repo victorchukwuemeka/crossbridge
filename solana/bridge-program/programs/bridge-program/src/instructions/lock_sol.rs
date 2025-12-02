@@ -1,7 +1,17 @@
 use anchor_lang::prelude::*;
 use crate::{records::{bridge_accounts::BridgeAccount, user_balance::UserBalance}, events::lock_event::LockEvent};
 use sha2::{Digest, Sha256};
-
+use orchard::{
+    Address, Note, bundle::commitments, keys::{Diversifier, FullViewingKey, Scope, SpendingKey}, note::{ExtractedNoteCommitment, NoteCommitment, Nullifier, RandomSeed, Rho}, value::NoteValue
+    
+};
+use orchard::keys::DiversifierIndex;
+//use orchard::note::RandomSeed;
+//use orchard::note::ExtractedNoteCommitment;
+//use orchard::keys::Scope;
+//use tap::pipe::Pipe;
+    
+//use orchard::keys::{SpendingKey, FullViewingKey, Scope};
 
 #[derive(Accounts)]
 pub struct LockSol<'info> {
@@ -57,19 +67,14 @@ pub fn handler(ctx: Context<LockSol>, amount: u64, eth_address: String, target_n
 
     
    
-    //i did this here for tracking privacy
-    let commitment = generate_commitment(
+    //so the commitement if for hash/proof for look event 
+    //nullifier  for preventing double spend 
+    let (commitment, nullifier) = generate_commitment(
         ctx.accounts.user.key(),
-        amount, 
+        amount,
         Clock::get()?.unix_timestamp,
     );
 
-    
-    //the needed nullifier
-    let nullifier = generate_nullifier(
-        ctx.accounts.user.key(), 
-        commitment
-    );
 
 
      //updating the user account 
@@ -98,29 +103,55 @@ pub fn handler(ctx: Context<LockSol>, amount: u64, eth_address: String, target_n
     Ok(())
 }
 
-//with the bytes generated we can track privacy
-fn generate_commitment(user: Pubkey, amount: u64, timestamp: i64)->[u8; 32]{
-   
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-   
-    hasher.update(user.as_ref());
-    hasher.update(amount.to_le_bytes());
-    hasher.update(timestamp.to_le_bytes());
-    hasher.finalize().into()
 
+fn generate_commitment(
+    user: Pubkey, 
+    amount: u64, 
+    timestamp: i64
+) -> ([u8; 32], [u8; 32]) {
+    
+    let seed = derive_seed(user, timestamp);
+    let sk = SpendingKey::from_bytes(seed).unwrap();
+    let fvk = FullViewingKey::from(&sk);
+    
+    // Get recipient address
+    let recipient: Address = fvk.address_at(0u64, Scope::External);
+    let rho_bytes: [u8; 32] = rand::random();
+    let rho = Rho::from_bytes(&rho_bytes).unwrap();
+    let rseed = RandomSeed::from_bytes(seed, &rho).unwrap();
+
+    
+    // Create note
+    let note = Note::from_parts(
+        recipient,
+        NoteValue::from_raw(amount),
+        Rho::from_bytes(&[0u8; 32]).unwrap(),
+        rseed,
+        //rand::random(),
+    ).unwrap();
+    
+    // Generate commitment
+    let commitment = note.commitment();
+
+    let extract_commit = ExtractedNoteCommitment::from(commitment);
+    let commitment_bytes: [u8; 32] = extract_commit.to_bytes();
+
+    // Generate nullifier
+    let nullifier = note.nullifier(&fvk);
+    let nullifier_bytes: [u8; 32] = nullifier.to_bytes();
+    
+    (commitment_bytes, nullifier_bytes)
 }
 
-//just to avoid double spending
-fn generate_nullifier(user:Pubkey, commitment:[u8; 32])->[u8; 32]{
-    use sha2::{Digest, Sha256};
+
+
+fn derive_seed(user: Pubkey, timestamp: i64)->[u8; 32]{
     let mut hasher = Sha256::new();
-
     hasher.update(user.as_ref());
-    hasher.update(&commitment);
-    hasher.update(b"crossbridge-nullifier-v1");
+    hasher.update(timestamp.to_le_bytes());
+    hasher.update(b"crosbridge-v1");
     hasher.finalize().into()
-
+    
 }
 
 #[error_code]
@@ -129,4 +160,6 @@ pub enum ErrorCode {
     InsufficientAmountForFee,
     #[msg("Arithmetic overflow")]
     Overflow,
+    #[msg("Invalid spending key")]
+    InvalidSpendingKey,
 }
